@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北斗 · 改进 YOLOv8m 小目标识别辅助系统</title>
+<style>
+/* ============ 设计令牌 ============ */
+:root{
+  --bg-0:#04070f; --bg-1:#070c18; --bg-2:#0b1222;
+  --glass: rgba(18,28,52,0.55);
+  --glass-2: rgba(26,38,68,0.42);
+  --stroke: rgba(126,166,224,0.16);
+  --stroke-2: rgba(126,166,224,0.32);
+  --cyan:#46e3ff; --cyan-2:#22d3ee; --indigo:#8b9bff; --green:#3ee08a;
+  --warn:#ffb020; --bad:#ff5d6c; --violet:#b18cff;
+  --txt:#eaf1ff; --sub:#92a6cc; --muted:#64789c;
+  --r-lg:18px; --r-md:13px; --shadow:0 18px 50px -20px rgba(0,0,0,.7);
+  --font:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Segoe UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg-0); color:var(--txt); font-family:var(--font);
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+/* ============ 极光背景 ============ */
+.aurora{position:fixed; inset:-20%; z-index:0; filter:blur(60px) saturate(140%); opacity:.9; pointer-events:none}
+.aurora span{position:absolute; border-radius:50%; mix-blend-mode:screen}
+.aurora .a1{width:46vw; height:46vw; left:-6vw; top:-10vw;
+  background:radial-gradient(circle at 30% 30%, rgba(34,211,238,.55), transparent 60%);
+  animation:drift1 22s ease-in-out infinite}
+.aurora .a2{width:50vw; height:50vw; right:-12vw; top:8vh;
+  background:radial-gradient(circle at 60% 40%, rgba(123,139,255,.5), transparent 62%);
+  animation:drift2 28s ease-in-out infinite}
+.aurora .a3{width:40vw; height:40vw; left:30vw; bottom:-16vw;
+  background:radial-gradient(circle at 50% 50%, rgba(62,224,138,.32), transparent 60%);
+  animation:drift3 26s ease-in-out infinite}
+@keyframes drift1{50%{transform:translate(8vw,6vh) scale(1.12)}}
+@keyframes drift2{50%{transform:translate(-6vw,4vh) scale(1.08)}}
+@keyframes drift3{50%{transform:translate(4vw,-6vh) scale(1.15)}}
+.bg-grid{position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+  background-image:radial-gradient(rgba(126,166,224,.10) 1px, transparent 1.4px);
+  background-size:26px 26px;
+  mask-image:radial-gradient(circle at 50% 35%, #000 0%, transparent 78%)}
+.vignette{position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:radial-gradient(120% 90% at 50% -10%, transparent 40%, var(--bg-0) 100%)}
+
+/* ============ 玻璃面板 ============ */
+.glass{background:var(--glass); backdrop-filter:blur(22px) saturate(140%);
+  -webkit-backdrop-filter:blur(22px) saturate(140%);
+  border:1px solid var(--stroke); box-shadow:var(--shadow)}
+
+/* ============ 顶栏 ============ */
+.topbar{position:relative; z-index:3; display:flex; align-items:center; gap:15px;
+  padding:13px 22px; border-bottom:1px solid var(--stroke);
+  background:linear-gradient(180deg, rgba(12,20,38,.72), rgba(8,13,26,.5))}
+.logo{width:42px; height:42px; flex:0 0 auto; filter:drop-shadow(0 0 10px rgba(70,227,255,.45))}
+.titles h1{font-size:17px; margin:0; font-weight:800; letter-spacing:.4px;
+  background:linear-gradient(90deg,#eaf1ff,#9fd9ff); -webkit-background-clip:text; background-clip:text; color:transparent}
+.titles .sub{font-size:11.5px; color:var(--sub); margin-top:3px; letter-spacing:.3px}
+.badges{margin-left:auto; display:flex; gap:9px; flex-wrap:wrap}
+.badge{font-size:11.5px; padding:5px 13px; border-radius:20px; border:1px solid var(--stroke);
+  background:var(--glass-2); color:var(--sub); display:flex; align-items:center; gap:6px;
+  white-space:nowrap; transition:.3s}
+.badge .dot{width:7px; height:7px; border-radius:50%; background:var(--muted)}
+.badge.real{color:#04121a; background:linear-gradient(90deg,var(--cyan),var(--green)); border-color:transparent; font-weight:800}
+.badge.real .dot{background:#04121a}
+.badge.demo{color:#1c1300; background:linear-gradient(90deg,var(--warn),#ffd479); border-color:transparent; font-weight:800}
+.badge.gpu{color:var(--cyan); border-color:var(--cyan); box-shadow:0 0 14px -2px rgba(70,227,255,.5)}
+.badge.gpu .dot{background:var(--cyan); box-shadow:0 0 8px var(--cyan)}
+
+/* ============ 布局 ============ */
+.layout{position:relative; z-index:2; display:grid;
+  grid-template-columns:330px 1fr 372px; gap:15px; padding:15px;
+  height:calc(100vh - 69px)}
+.col{display:flex; flex-direction:column; gap:14px; padding:16px; border-radius:var(--r-lg);
+  overflow:auto; animation:rise .7s cubic-bezier(.2,.8,.2,1) both}
+.col.left{animation-delay:.05s}
+.col.center{animation-delay:.13s; padding:0; overflow:hidden}
+.col.right{animation-delay:.21s}
+@keyframes rise{from{opacity:0; transform:translateY(18px)}}
+.col::-webkit-scrollbar{width:7px}
+.col::-webkit-scrollbar-thumb{background:rgba(126,166,224,.25); border-radius:4px}
+
+/* ============ 卡片 ============ */
+.card{border:1px solid var(--stroke); border-radius:var(--r-md);
+  background:linear-gradient(180deg, rgba(20,30,54,.5), rgba(12,20,38,.35)); padding:14px}
+.card h2{font-size:12.5px; margin:0 0 12px; color:var(--cyan); letter-spacing:1.4px; font-weight:700;
+  display:flex; align-items:center; gap:8px; text-transform:uppercase}
+.card h2::before{content:""; width:3px; height:14px; border-radius:2px;
+  background:linear-gradient(180deg,var(--cyan),var(--indigo)); box-shadow:0 0 8px var(--cyan)}
+.pill{display:inline-block; padding:1px 8px; border-radius:10px; background:var(--glass-2);
+  border:1px solid var(--stroke); color:var(--sub); font-size:10px; margin-left:auto; font-weight:600}
+
+/* ============ Tabs ============ */
+.tabs{display:flex; gap:7px}
+.tab{flex:1; text-align:center; padding:9px 0; border-radius:11px; cursor:pointer;
+  background:var(--glass-2); border:1px solid var(--stroke); color:var(--sub); font-size:12.5px;
+  font-weight:600; transition:.25s; position:relative; overflow:hidden}
+.tab:hover{color:var(--txt); border-color:var(--stroke-2)}
+.tab.active{color:#04121a; background:linear-gradient(90deg,var(--cyan),var(--cyan-2));
+  border-color:transparent; box-shadow:0 6px 18px -6px rgba(70,227,255,.6)}
+
+/* ============ Dropzone ============ */
+.drop{border:1.5px dashed var(--stroke-2); border-radius:13px; padding:26px 16px; text-align:center;
+  color:var(--sub); cursor:pointer; transition:.2s; font-size:12.5px; line-height:1.7;
+  background:radial-gradient(circle at 50% 0%, rgba(70,227,255,.06), transparent 70%)}
+.drop:hover,.drop.over{border-color:var(--cyan); color:var(--cyan);
+  background:rgba(70,227,255,.08); box-shadow:inset 0 0 30px -10px rgba(70,227,255,.4)}
+.drop .ic{font-size:26px; display:block; margin-bottom:6px; opacity:.85}
+
+/* ============ 控件 ============ */
+.btn{width:100%; padding:11px; border-radius:11px; border:none; cursor:pointer; font-weight:800;
+  background:linear-gradient(90deg,var(--cyan),var(--cyan-2)); color:#04121a; font-size:13px;
+  transition:.22s; font-family:var(--font)}
+.btn:hover{box-shadow:0 8px 22px -6px rgba(70,227,255,.65); transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.ghost{background:transparent; border:1px solid var(--stroke-2); color:var(--sub); font-weight:600}
+.btn.ghost:hover{color:var(--cyan); border-color:var(--cyan); box-shadow:none; transform:none}
+.btn:disabled{opacity:.4; cursor:not-allowed; transform:none; box-shadow:none}
+.field{margin:13px 0}
+.field label{display:flex; justify-content:space-between; font-size:12px; color:var(--sub); margin-bottom:7px}
+.field label b{color:var(--cyan); font-family:var(--mono)}
+input[type=range]{width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:6px;
+  background:linear-gradient(90deg,var(--cyan) var(--p,30%), rgba(126,166,224,.18) var(--p,30%));
+  cursor:pointer; outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:17px; height:17px; border-radius:50%;
+  background:#eaf6ff; border:3px solid var(--cyan); box-shadow:0 0 10px var(--cyan); cursor:pointer; transition:.15s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:#eaf6ff;
+  border:3px solid var(--cyan); box-shadow:0 0 10px var(--cyan); cursor:pointer}
+select,input[type=number]{width:100%; background:var(--glass-2); color:var(--txt);
+  border:1px solid var(--stroke); border-radius:9px; padding:8px 10px; font-size:12.5px; font-family:var(--font);
+  outline:none; transition:.2s}
+select:focus,input[type=number]:focus{border-color:var(--cyan); box-shadow:0 0 0 3px rgba(70,227,255,.15)}
+.hr{height:1px; background:linear-gradient(90deg,transparent,var(--stroke),transparent); margin:15px 0}
+.muted{color:var(--muted); font-size:11px; line-height:1.65}
+
+/* ============ 北斗面板 ============ */
+.beidou{border:1px solid var(--stroke); border-radius:13px; padding:14px;
+  background:radial-gradient(circle at 50% 120%, rgba(70,227,255,.12), transparent 70%), var(--glass-2);
+  position:relative; overflow:hidden}
+.beidou .sat{width:100%; height:118px; display:block}
+.coord{font-family:var(--mono); font-size:12.5px; color:var(--cyan); margin-top:8px; letter-spacing:.3px}
+.tag{font-size:11px; color:var(--warn); margin-top:4px}
+.beidou .head{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--sub);
+  letter-spacing:1.5px; margin-bottom:6px; text-transform:uppercase}
+.beidou .head .live{width:7px; height:7px; border-radius:50%; background:var(--green);
+  box-shadow:0 0 8px var(--green); animation:pulse 1.8s infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ============ 中央舞台 ============ */
+.stage{position:relative; width:100%; height:100%; border-radius:var(--r-lg); overflow:hidden;
+  background:radial-gradient(circle at 50% 45%, #0c1730, #060c18 75%); border:1px solid var(--stroke)}
+.stage::before{content:""; position:absolute; inset:0; pointer-events:none;
+  background:repeating-radial-gradient(circle at 50% 50%, transparent 0 46px, rgba(70,227,255,.05) 47px 48px);
+  -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 0 62%, transparent 80%);
+  mask-image:radial-gradient(circle at 50% 50%, #000 0 62%, transparent 80%)}
+.radar{position:absolute; left:50%; top:50%; width:180%; height:180%; transform:translate(-50%,-50%);
+  pointer-events:none; opacity:.55; transition:opacity .5s}
+.radar::after{content:""; position:absolute; left:50%; top:50%; width:50%; height:50%;
+  transform-origin:0 0;
+  background:conic-gradient(from 0deg, rgba(70,227,255,.22), transparent 55deg);
+  animation:sweep 5.5s linear infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
+.stage.active .radar{opacity:0}
+.stage.active::before{opacity:.4}
+#cv{position:absolute; inset:0; margin:auto; max-width:100%; max-height:100%; display:none;
+  border-radius:6px; box-shadow:0 0 0 1px var(--stroke)}
+.placeholder{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; text-align:center; color:var(--sub); padding:30px; gap:14px}
+.placeholder .ring-ic{width:74px; height:74px; border-radius:50%; border:2px solid var(--stroke-2);
+  border-top-color:var(--cyan); animation:spin 1.4s linear infinite; box-shadow:0 0 24px -6px rgba(70,227,255,.6)}
+.placeholder h3{margin:0; font-size:15px; color:var(--txt); font-weight:700}
+.placeholder p{margin:0; font-size:12.5px; line-height:1.8; max-width:340px}
+.stage.active .placeholder{display:none}
+.banner{position:absolute; top:12px; left:12px; right:12px; display:none; padding:10px 14px;
+  border-radius:11px; font-size:12px; font-weight:600; z-index:7; backdrop-filter:blur(8px);
+  background:linear-gradient(90deg, rgba(255,176,32,.92), rgba(255,212,121,.92)); color:#1c1300;
+  border:1px solid rgba(255,212,121,.5); box-shadow:0 8px 24px -8px rgba(255,176,32,.5);
+  animation:slideDown .4s ease both}
+.banner.demo{display:block}
+@keyframes slideDown{from{opacity:0; transform:translateY(-10px)}}
+.spinner{position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+  background:rgba(6,11,22,.55); backdrop-filter:blur(3px); z-index:8}
+.spinner.show{display:flex}
+.ring{width:46px; height:46px; border:4px solid var(--stroke); border-top-color:var(--cyan);
+  border-radius:50%; animation:spin 1s linear infinite; box-shadow:0 0 20px -4px rgba(70,227,255,.6)}
+@keyframes spin{to{transform:rotate(360deg)}}
+#vid{position:absolute; inset:0; margin:auto; max-width:100%; max-height:100%; display:none;
+  border-radius:6px; background:#000}
+.stage-tag{position:absolute; bottom:12px; left:12px; z-index:6; font-family:var(--mono);
+  font-size:10.5px; color:var(--sub); background:rgba(8,13,26,.6); padding:4px 9px; border-radius:8px;
+  border:1px solid var(--stroke); letter-spacing:.5px}
+
+/* ============ 右栏：统计 ============ */
+.summary{display:flex; align-items:center; gap:14px; padding:14px; border-radius:var(--r-md);
+  background:linear-gradient(120deg, rgba(70,227,255,.12), rgba(123,139,255,.08)); border:1px solid var(--stroke)}
+.summary .big{font-size:38px; font-weight:800; line-height:1; font-family:var(--mono);
+  background:linear-gradient(90deg,var(--cyan),var(--indigo)); -webkit-background-clip:text; background-clip:text; color:transparent}
+.summary .lbl{font-size:11.5px; color:var(--sub)}
+.summary .lbl b{color:var(--txt); font-weight:700}
+.statrow{display:flex; align-items:center; gap:9px; margin:7px 0; font-size:12px}
+.statrow .nm{width:78px; color:var(--sub); flex:0 0 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.bar{flex:1; height:13px; background:rgba(126,166,224,.12); border-radius:7px; overflow:hidden; position:relative}
+.bar>i{display:block; height:100%; border-radius:7px; transition:width .7s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 0 10px -2px currentColor}
+.statrow .ct{width:30px; text-align:right; color:var(--txt); font-family:var(--mono); flex:0 0 auto}
+.list{max-height:38%; overflow:auto; margin-top:4px; display:flex; flex-direction:column; gap:5px}
+.list::-webkit-scrollbar{width:6px}
+.list::-webkit-scrollbar-thumb{background:rgba(126,166,224,.22); border-radius:4px}
+.item{display:flex; align-items:center; gap:9px; padding:7px 9px; border-radius:9px; cursor:pointer;
+  border:1px solid transparent; font-size:12px; transition:.18s; background:rgba(18,28,52,.4)}
+.item:hover{background:var(--glass-2)}
+.item.sel{background:var(--glass-2); border-color:var(--cyan); box-shadow:0 0 0 1px rgba(70,227,255,.25)}
+.item .dot{width:11px; height:11px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 8px -1px currentColor}
+.item .cls{flex:1; display:flex; align-items:center; gap:7px}
+.item .cf{color:var(--sub); font-family:var(--mono)}
+.geo{font-family:var(--mono); font-size:11.5px; color:var(--sub); line-height:1.75}
+.geo b{color:var(--cyan)}
+.geo .row{display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-bottom:1px dashed rgba(126,166,224,.1)}
+
+/* ============ 响应式 ============ */
+@media(max-width:1180px){
+  body{overflow:auto}
+  .layout{grid-template-columns:1fr; height:auto}
+  .col.center{height:62vh}
+}
+@media(prefers-reduced-motion:reduce){
+  .aurora span,.radar::after,.ring,.placeholder .ring-ic,.badge.gpu .dot,.beidou .head .live{animation:none!important}
+  .col{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+<div class="bg-grid"></div>
+<div class="vignette"></div>
+
+<header class="topbar">
+  <svg class="logo" viewBox="0 0 48 48" fill="none">
+    <defs>
+      <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#46e3ff"/><stop offset="1" stop-color="#8b9bff"/>
+      </linearGradient>
+    </defs>
+    <circle cx="24" cy="24" r="20" stroke="url(#lg)" stroke-width="2" opacity=".55"/>
+    <circle cx="24" cy="24" r="6" fill="url(#lg)"/>
+    <ellipse cx="24" cy="24" rx="20" ry="8" stroke="#46e3ff" stroke-width="1.4" opacity=".7" transform="rotate(28 24 24)"/>
+    <ellipse cx="24" cy="24" rx="20" ry="8" stroke="#8b9bff" stroke-width="1.4" opacity=".7" transform="rotate(-58 24 24)"/>
+    <circle cx="44" cy="14" r="2.4" fill="#46e3ff"/>
+    <circle cx="6" cy="34" r="2.4" fill="#8b9bff"/>
+  </svg>
+  <div class="titles">
+    <h1>北斗 · 改进 YOLOv8m 小目标识别辅助系统</h1>
+    <div class="sub">EMA 注意力 · DySample · Slim-Neck(GSConv) · NWD · P2 分支 &nbsp;|&nbsp; Web 实时推理平台</div>
+  </div>
+  <div class="badges">
+    <span id="bMode" class="badge"><span class="dot"></span>模式:…</span>
+    <span id="bDev" class="badge"><span class="dot"></span>设备:…</span>
+    <span id="bVar" class="badge"><span class="dot"></span>模型:…</span>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- 左：控制 -->
+  <aside class="col left">
+    <div class="card">
+      <h2>输入源</h2>
+      <div class="tabs">
+        <div class="tab active" data-tab="image">图片</div>
+        <div class="tab" data-tab="video">视频</div>
+        <div class="tab" data-tab="cam">摄像头</div>
+      </div>
+
+      <div id="panel-image" style="margin-top:13px">
+        <div class="drop" id="drop"><span class="ic">⬆</span>点击或拖拽图片到此处<br>（jpg / png，建议含小目标场景）</div>
+        <input type="file" id="fileImg" accept="image/*" hidden>
+        <button class="btn ghost" id="btnDemo" style="margin-top:10px">▶ 查看示例演示（演示数据）</button>
+      </div>
+
+      <div id="panel-video" style="display:none; margin-top:13px">
+        <div class="drop" id="dropV"><span class="ic">🎞</span>点击选择视频文件<br>（mp4，建议 &lt; 50MB）</div>
+        <input type="file" id="fileVid" accept="video/*" hidden>
+      </div>
+
+      <div id="panel-cam" style="display:none; margin-top:13px">
+        <button class="btn" id="btnCamOn">启动实时摄像头</button>
+        <button class="btn ghost" id="btnCamOff" disabled style="margin-top:9px">停止</button>
+        <p class="muted" style="margin-top:10px">实时模式依赖 GPU；CPU 机器下帧率较低，属正常现象。</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>推理参数</h2>
+      <div class="field">
+        <label>置信度阈值 <b id="vConf">0.25</b></label>
+        <input type="range" id="conf" min="0.05" max="0.95" step="0.01" value="0.25">
+        <p class="muted" style="margin:6px 0 0">拖动即时过滤已检测框（不重新推理）。</p>
+      </div>
+      <div class="field">
+        <label>IoU 阈值 <b id="vIou">0.45</b></label>
+        <input type="range" id="iou" min="0.1" max="0.9" step="0.05" value="0.45">
+      </div>
+      <div class="field">
+        <label>输入尺寸 imgsz</label>
+        <select id="imgsz"><option>640</option><option>768</option><option>1024</option></select>
+      </div>
+      <button class="btn" id="btnRe">重新推理（用当前 imgsz）</button>
+    </div>
+
+    <div class="card" style="flex:1">
+      <div class="beidou">
+        <div class="head"><span class="live"></span>北斗定位 <span class="pill" id="bReal">演示</span></div>
+        <svg class="sat" viewBox="0 0 200 118">
+          <defs>
+            <radialGradient id="earth" cx="50%" cy="40%" r="60%">
+              <stop offset="0" stop-color="#1b3a5c"/><stop offset="1" stop-color="#0a1830"/>
+            </radialGradient>
+          </defs>
+          <circle cx="100" cy="62" r="7" fill="url(#earth)" stroke="#46e3ff" stroke-width="1"/>
+          <ellipse cx="100" cy="62" rx="86" ry="34" fill="none" stroke="rgba(126,166,224,.22)" stroke-width="1"/>
+          <ellipse cx="100" cy="62" rx="60" ry="22" fill="none" stroke="rgba(126,166,224,.22)" stroke-width="1"/>
+          <ellipse cx="100" cy="62" rx="34" ry="11" fill="none" stroke="rgba(126,166,224,.22)" stroke-width="1"/>
+          <g id="sats"></g>
+          <text x="100" y="112" fill="#64789c" font-size="8" text-anchor="middle" letter-spacing="1">BEIDOU · 实时定位网络</text>
+        </svg>
+        <div class="coord" id="coord">LAT -- , LON --</div>
+        <div class="coord" id="alt">ALT -- · 卫星 --</div>
+        <div class="tag" id="bTag"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 中：舞台 -->
+  <section class="col center">
+    <div class="stage" id="stage">
+      <div class="radar"></div>
+      <div class="banner demo" id="banner"></div>
+      <div class="spinner" id="spin"><div class="ring"></div></div>
+      <canvas id="cv"></canvas>
+      <video id="vid" controls></video>
+      <div class="placeholder" id="ph">
+        <div class="ring-ic"></div>
+        <h3>等待目标接入…</h3>
+        <p>请选择一张图片 / 视频，或开启摄像头开始识别。<br>系统会对图像中的小目标（行人 / 车辆 / 自行车等）进行高精度检测并实时标注。</p>
+      </div>
+      <div class="stage-tag" id="stageTag">STANDBY</div>
+    </div>
+  </section>
+
+  <!-- 右：结果 -->
+  <aside class="col right">
+    <div class="summary">
+      <div class="big" id="bigN">0</div>
+      <div class="lbl">当前帧目标数<br><b id="modeLine">待机</b></div>
+    </div>
+
+    <div class="card">
+      <h2>目标统计 <span class="pill" id="cntDet">0</span></h2>
+      <div id="stats"></div>
+    </div>
+
+    <div class="card">
+      <h2>检测列表 <span class="pill" id="cntList">0</span></h2>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="card" style="flex:1">
+      <h2>地理定位（示意）</h2>
+      <div class="geo" id="geo">—</div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+// 后端不可达时的离线兜底（与 app.py 中的 VisDrone 10 类保持一致）
+const FALLBACK = {
+  classes_zh:["行人","人群","自行车","小汽车","厢式货车","卡车","三轮车","带棚三轮车","公交车","摩托车"],
+  classes_en:["pedestrian","people","bicycle","car","van","truck","tricycle","awning-tricycle","bus","motor"],
+  colors:["#32cd32","#e6143c","#00ffff","#ffff00","#008cff","#ff0000","#dcdcdc","#ff00ff","#0000ff","#ffa500"],
+  beidou:{lat:28.169, lon:112.944, alt:50.0, real:false, satellites:12}
+};
+let ST = {mode:'demo', device:null, classes_zh:[], classes_en:[], colors:[], beidou:{}, detections:[], img:null, selected:-1, conf:0.25};
+let camStream=null, camTimer=null, camBusy=false;
+
+async function init(){
+  let r=null;
+  try{ r = await fetch('/api/status').then(x=>x.json()); }catch(e){ r=null; }
+  if(!r){
+    ST.classes_zh=FALLBACK.classes_zh; ST.classes_en=FALLBACK.classes_en;
+    ST.colors=FALLBACK.colors; ST.beidou=FALLBACK.beidou; ST.mode='demo';
+    $('#bMode').innerHTML='<span class="dot"></span>未连接';
+    $('#bDev').innerHTML='<span class="dot"></span>设备:—';
+    $('#bVar').innerHTML='<span class="dot"></span>后端离线';
+    $('#bVar').className='badge demo';
+    setBeidou(FALLBACK.beidou);
+    showBanner('未连接到后端服务（/api/status 无响应）。当前以离线演示形态展示界面；启动后端后刷新即可获得真实推理。');
+    bind(); return;
+  }
+  ST.mode=r.mode; ST.device=r.device; ST.classes_zh=r.classes_zh;
+  ST.classes_en=r.classes_en; ST.colors=r.class_colors; ST.beidou=r.beidou;
+  const m=$('#bMode'); m.innerHTML='<span class="dot"></span>模式: '+(r.mode==='real'?'真实推理':'演示模式');
+  m.className='badge '+(r.mode==='real'?'real':'demo');
+  const d=$('#bDev'); d.innerHTML='<span class="dot"></span>设备: '+(r.mode==='real'?(r.device==='0'?'GPU':'CPU'):'—');
+  if(r.mode==='real' && r.device==='0') d.className='badge gpu';
+  $('#bVar').innerHTML='<span class="dot"></span>模型: '+(r.model.variant||(r.mode==='real'?'已加载':'未加载'));
+  setBeidou(r.beidou);
+  if(r.mode!=='real') showBanner('当前为「演示模式」：未加载真实模型。可点左侧「示例演示」查看完整交互；在有 ultralytics + 权重的机器上启动即自动切真实推理。');
+  bind();
+}
+function setBeidou(b){
+  $('#coord').textContent=`LAT ${b.lat}, LON ${b.lon}`;
+  $('#alt').textContent=`ALT ${b.alt} m · 卫星 ${b.satellites}`;
+  $('#bReal').textContent=b.real?'真实':'演示';
+  $('#bTag').textContent=b.real?'':'演示坐标 · 部署时接入真实北斗读数';
+  drawSats(b.satellites);
+}
+function drawSats(n){
+  const g=$('#sats'); g.innerHTML='';
+  const cx=100, cy=62;
+  for(let i=0;i<Math.min(n,12);i++){
+    const a=i/12*Math.PI*2, x=cx+Math.cos(a)*72, y=cy+Math.sin(a)*28;
+    g.innerHTML+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#3ee08a">
+      <animate attributeName="opacity" values="1;.3;1" dur="2.4s" begin="${(i*0.2).toFixed(1)}s" repeatCount="indefinite"/></circle>`;
+  }
+}
+function showBanner(t){const b=$('#banner'); b.textContent=t; b.classList.add('demo');}
+function setRange(el){const min=+el.min,max=+el.max;el.style.setProperty('--p',((el.value-min)/(max-min)*100)+'%');}
+
+function bind(){
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const v=t.dataset.tab;
+    $('#panel-image').style.display=v==='image'?'block':'none';
+    $('#panel-video').style.display=v==='video'?'block':'none';
+    $('#panel-cam').style.display=v==='cam'?'block':'none';
+    $('#vid').style.display='none'; $('#cv').style.display='none';
+    $('#stage').classList.remove('active'); $('#stageTag').textContent='STANDBY';
+    if(v!=='cam') stopCam();
+  });
+  const drop=$('#drop'), fi=$('#fileImg');
+  drop.onclick=()=>fi.click();
+  drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};
+  drop.ondragleave=()=>drop.classList.remove('over');
+  drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])pickImg(e.dataTransfer.files[0])};
+  fi.onchange=e=>{if(e.target.files[0])pickImg(e.target.files[0])};
+  $('#btnDemo').onclick=loadDemo;
+
+  const dv=$('#dropV'), fv=$('#fileVid');
+  dv.onclick=()=>fv.click();
+  fv.onchange=e=>{if(e.target.files[0])pickVid(e.target.files[0])};
+
+  $('#btnCamOn').onclick=startCam; $('#btnCamOff').onclick=stopCam;
+  $('#conf').oninput=e=>{ST.conf=+e.target.value;$('#vConf').textContent=ST.conf.toFixed(2);setRange(e.target);if(ST.img)render();};
+  $('#iou').oninput=e=>{$('#vIou').textContent=(+e.target.value).toFixed(2);setRange(e.target);};
+  $('#imgsz').onchange=()=>{};
+  $('#btnRe').onclick=reDetect;
+  setRange($('#conf')); setRange($('#iou'));
+}
+function showSpin(b){$('#spin').classList.toggle('show',b);}
+function activate(){const s=$('#stage'); s.classList.add('active'); $('#ph').style.display='none';}
+
+async function pickImg(file){
+  if(ST.mode!=='real'){
+    const url=URL.createObjectURL(file); const im=new Image();
+    im.onload=()=>{ST.img=im;ST.detections=[];activate();$('#stageTag').textContent='PREVIEW';render();};
+    im.src=url; return;
+  }
+  showSpin(true);
+  const fd=new FormData(); fd.append('file',file);
+  fd.append('iou',$('#iou').value); fd.append('imgsz',$('#imgsz').value);
+  try{
+    const r=await fetch('/api/detect',{method:'POST',body:fd}).then(x=>x.json());
+    if(r.error){alert(r.error);return;}
+    const im=new Image();
+    im.onload=()=>{ST.img=im;ST.detections=r.detections||[];activate();$('#stageTag').textContent='DETECT';render();};
+    im.src=r.original;
+  }catch(e){alert('推理失败：'+e);} finally{showSpin(false);}
+}
+async function reDetect(){
+  if(!ST.img) return;
+  if(ST.mode!=='real'){render();return;}
+  showSpin(true);
+  const fd=new FormData();
+  fd.append('iou',$('#iou').value); fd.append('imgsz',$('#imgsz').value);
+  try{
+    const r=await fetch('/api/detect',{method:'POST',body:fd}).then(x=>x.json());
+    if(r.error){alert(r.error);return;}
+    ST.detections=r.detections||[]; render();
+  }catch(e){alert('推理失败：'+e);} finally{showSpin(false);}
+}
+function render(){
+  const cv=$('#cv'); if(!ST.img)return;
+  const maxW=cv.parentElement.clientWidth-0, maxH=cv.parentElement.clientHeight-0;
+  const scale=Math.min(1, maxW/ST.img.width, maxH/ST.img.height);
+  const W=Math.round(ST.img.width*scale), H=Math.round(ST.img.height*scale);
+  cv.width=W; cv.height=H; cv.style.display='block';
+  const ctx=cv.getContext('2d'); ctx.clearRect(0,0,W,H); ctx.drawImage(ST.img,0,0,W,H);
+  const s=W/ST.img.width;
+  const dets=ST.detections.filter(d=>d.conf>=ST.conf).sort((a,b)=>b.conf-a.conf);
+  dets.forEach((d,i)=>{
+    const col=ST.colors[d.class]||'#46e3ff';
+    const x=d.x1*s,y=d.y1*s,w=(d.x2-d.x1)*s,h=(d.y2-d.y1)*s;
+    ctx.save();
+    ctx.shadowColor=col; ctx.shadowBlur=ST.selected===i?18:10;
+    ctx.lineWidth=ST.selected===i?3.5:2; ctx.strokeStyle=col;
+    ctx.strokeRect(x,y,w,h);
+    if(ST.selected===i){ctx.fillStyle='rgba(70,227,255,.16)';ctx.fillRect(x,y,w,h);}
+    ctx.restore();
+    const label=ST.classes_zh[d.class]+' '+(d.conf*100).toFixed(0)+'%';
+    ctx.font='600 13px '+getComputedStyle(document.body).fontFamily;
+    const tw=ctx.measureText(label).width+10;
+    ctx.fillStyle=col; ctx.fillRect(x,y-18,tw,18);
+    ctx.fillStyle='#04121a'; ctx.fillText(label,x+5,y-5);
+  });
+  drawStats(dets); drawList(dets); drawGeo(dets);
+}
+function animateCount(el,to){
+  const from=+el.textContent||0, dur=600, t0=performance.now();
+  (function step(t){const k=Math.min(1,(t-t0)/dur);
+    el.textContent=Math.round(from+(to-from)*(1-Math.pow(1-k,3)));
+    if(k<1)requestAnimationFrame(step);})(t0);
+}
+function drawStats(dets){
+  const c=ST.classes_zh.map((_,i)=>dets.filter(d=>d.class===i).length);
+  const mx=Math.max(1,...c);
+  $('#stats').innerHTML=ST.classes_zh.map((nm,i)=>{
+    const pct=(c[i]/mx*100).toFixed(0);
+    return `<div class="statrow"><span class="nm" title="${nm}">${nm}</span>
+      <span class="bar"><i style="width:${pct}%;background:${ST.colors[i]};color:${ST.colors[i]}"></i></span>
+      <span class="ct">${c[i]}</span></div>`;
+  }).join('');
+  animateCount($('#bigN'), dets.length);
+  $('#cntDet').textContent=dets.length;
+}
+function drawList(dets){
+  $('#list').innerHTML=dets.map((d,i)=>`
+    <div class="item ${ST.selected===i?'sel':''}" data-i="${i}">
+      <span class="dot" style="background:${ST.colors[d.class]};color:${ST.colors[d.class]}"></span>
+      <span class="cls">${ST.classes_zh[d.class]}<span class="pill">${ST.classes_en[d.class]}</span></span>
+      <span class="cf">${(d.conf*100).toFixed(1)}%</span>
+    </div>`).join('');
+  $('#cntList').textContent=dets.length;
+  $('#list').querySelectorAll('.item').forEach(el=>el.onclick=()=>{
+    const i=+el.dataset.i; ST.selected=(ST.selected===i?-1:i); render();
+  });
+}
+function drawGeo(dets){
+  if(!dets.length){$('#geo').innerHTML='<span class="muted">暂无目标定位信息。</span>';$('#modeLine').textContent=ST.mode==='real'?'就绪':'演示';return;}
+  const rows=dets.slice(0,8).map((d,i)=>{
+    const lon=d.lon??'--', lat=d.lat??'--';
+    return `<div class="row"><span>#${i+1} <b>${ST.classes_zh[d.class]}</b></span><span>LAT ${lat}, LON ${lon}</span></div>`;
+  }).join('');
+  $('#geo').innerHTML=rows+'<div class="muted" style="margin-top:8px">* 示意估算：图像中心对应北斗坐标，按像素偏移推算，非真实地理标定。</div>';
+  $('#modeLine').textContent=ST.mode==='real'?'实时识别':'演示数据';
+}
+// ---- 视频 ----
+async function pickVid(file){
+  if(ST.mode!=='real'){alert('演示模式不支持视频推理。');return;}
+  showSpin(true);
+  const fd=new FormData(); fd.append('file',file);
+  fd.append('conf',$('#conf').value); fd.append('iou',$('#iou').value); fd.append('imgsz',$('#imgsz').value);
+  try{
+    const r=await fetch('/api/video',{method:'POST',body:fd}).then(x=>x.json());
+    showSpin(false);
+    if(r.error){alert(r.error);return;}
+    $('#cv').style.display='none'; activate();
+    const v=$('#vid'); v.style.display='block'; $('#stageTag').textContent='VIDEO';
+    v.src=r.video_url+'?t='+Date.now(); v.load();
+    drawVideoStats(r.stats);
+  }catch(e){showSpin(false);alert('视频处理失败：'+e);}
+}
+function drawVideoStats(s){
+  const c=ST.classes_zh.map((_,i)=>s.class_count[i]);
+  const mx=Math.max(1,...c);
+  $('#stats').innerHTML=ST.classes_zh.map((nm,i)=>{
+    const pct=(c[i]/mx*100).toFixed(0);
+    return `<div class="statrow"><span class="nm" title="${nm}">${nm}</span>
+      <span class="bar"><i style="width:${pct}%;background:${ST.colors[i]};color:${ST.colors[i]}"></i></span>
+      <span class="ct">${c[i]}</span></div>`;
+  }).join('');
+  animateCount($('#bigN'), s.total);
+  $('#cntDet').textContent=s.total; $('#cntList').textContent=s.frames;
+  $('#geo').innerHTML=`<div class="row"><span><b>总目标数</b></span><span>${s.total}</span></div>
+    <div class="row"><span>帧数</span><span>${s.frames}</span></div>
+    <div class="row"><span>平均每帧</span><span><b>${s.avg_per_frame}</b></span></div>
+    <div class="row"><span>峰值 / 帧</span><span><b>${s.max_per_frame}</b></span></div>`;
+  $('#modeLine').textContent='视频分析';
+}
+// ---- 摄像头 ----
+async function startCam(){
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const v=$('#vid'); v.style.display='block'; activate(); $('#stageTag').textContent='LIVE';
+    v.srcObject=camStream; await v.play();
+    $('#cv').style.display='none';
+    $('#btnCamOn').disabled=true; $('#btnCamOff').disabled=false;
+    camTimer=setInterval(camTick,1000);
+  }catch(e){alert('无法访问摄像头：'+e);}
+}
+function stopCam(){
+  if(camTimer){clearInterval(camTimer);camTimer=null;}
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  const v=$('#vid'); if(v){v.srcObject=null;}
+  $('#btnCamOn').disabled=false; $('#btnCamOff').disabled=true;
+}
+async function camTick(){
+  if(camBusy||ST.mode!=='real')return; camBusy=true;
+  const v=$('#vid'); const c=document.createElement('canvas');
+  c.width=v.videoWidth; c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  const data=c.toDataURL('image/jpeg',0.7);
+  try{
+    const r=await fetch('/api/detect',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image:data,conf:ST.conf,iou:$('#iou').value,imgsz:$('#imgsz').value})}).then(x=>x.json());
+    camOverlay(r.detections||[]);
+  }catch(e){} finally{camBusy=false;}
+}
+function camOverlay(dets){
+  const v=$('#vid');
+  let ov=$('#cvOverlay');
+  if(!ov){ov=document.createElement('canvas');ov.id='cvOverlay';
+    ov.style.position='absolute';ov.style.left='0';ov.style.top='0';ov.style.pointerEvents='none';
+    ov.style.borderRadius='6px'; v.parentElement.appendChild(ov);}
+  const W=v.clientWidth,H=v.clientHeight; ov.width=W;ov.height=H;
+  const ctx=ov.getContext('2d');ctx.clearRect(0,0,W,H);
+  const sx=W/v.videoWidth, sy=H/v.videoHeight;
+  dets.filter(d=>d.conf>=ST.conf).forEach(d=>{
+    const col=ST.colors[d.class]||'#46e3ff';
+    ctx.save(); ctx.shadowColor=col; ctx.shadowBlur=10;
+    ctx.strokeStyle=col; ctx.lineWidth=2.5;
+    ctx.strokeRect(d.x1*sx,d.y1*sy,(d.x2-d.x1)*sx,(d.y2-d.y1)*sy);
+    ctx.restore();
+  });
+}
+// ---- 演示示例（纯前端，无模型） ----
+function loadDemo(){
+  const W=720,H=440; const c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');
+  x.fillStyle='#0c1730';x.fillRect(0,0,W,H);
+  x.strokeStyle='rgba(70,227,255,.18)';x.lineWidth=2;
+  for(let i=0;i<7;i++){x.beginPath();x.moveTo(0,i*64+40);x.lineTo(W,i*64+40);x.stroke();}
+  const objs=[
+    [130,270,230,330],[330,260,420,322],[500,285,590,338],
+    [200,215,218,275],[360,205,378,268],[540,222,558,272],
+    [270,165,284,200],[460,152,476,190]
+  ];
+  const fill=['#33506e','#3a5a7a','#2f4a66','#5a4a6e','#4a5a6e','#3a5a7a','#6e4a5a','#4a6e5a'];
+  objs.forEach((o,i)=>{x.fillStyle=fill[i];x.fillRect(o[0],o[1],o[2]-o[0],o[3]-o[1]);});
+  const url=c.toDataURL();
+  const dets=[
+    {x1:128,y1:268,x2:232,y2:332,class:3,conf:0.92},
+    {x1:328,y1:258,x2:422,y2:324,class:3,conf:0.88},
+    {x1:498,y1:283,x2:592,y2:340,class:4,conf:0.81},
+    {x1:198,y1:213,x2:220,y2:277,class:0,conf:0.76},
+    {x1:358,y1:203,x2:380,y2:270,class:0,conf:0.71},
+    {x1:538,y1:220,x2:560,y2:274,class:1,conf:0.64},
+    {x1:268,y1:163,x2:286,y2:202,class:0,conf:0.59},
+    {x1:458,y1:150,x2:478,y2:192,class:2,conf:0.52},
+  ];
+  dets.forEach(d=>{const cx=(d.x1+d.x2)/2,cy=(d.y1+d.y2)/2;
+    d.lon=+(ST.beidou.lon+(cx-W/2)*0.00001).toFixed(6);
+    d.lat=+(ST.beidou.lat-(cy-H/2)*0.00001).toFixed(6);});
+  const im=new Image();
+  im.onload=()=>{ST.img=im;ST.detections=dets;activate();$('#stageTag').textContent='DEMO';
+    render();
+    showBanner('示例演示：以上为演示数据（非真实模型推理），用于展示交互与界面。请在装有 ultralytics + 权重的机器上启动以获得真实识别结果。');};
+  im.src=url;
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# 北斗·改进YOLOv8m 推理后端 —— 一键部署
+# 用法（在 修正版代码/ 目录下）：
+#   docker compose -f server/docker-compose.yml up --build
+services:
+  backend:
+    build:
+      context: ..          # 修正版代码/
+      dockerfile: server/Dockerfile
+    image: beidou-yolov8-backend:latest
+    ports:
+      - "8000:8000"
+    environment:
+      APP_PORT: "8000"
+      APP_HOST: "0.0.0.0"
+      APP_PRELOAD_MODEL: "true"
+      APP_CORS_ORIGINS: "http://localhost:3000,http://localhost:5173"
+      APP_BEIDOU_REAL: "0"
+      APP_INFERENCE_CONCURRENCY: "1"
+      # 如需鉴权：
+      # APP_ENABLE_AUTH: "true"
+      # APP_API_KEY: "change-me"
+    volumes:
+      # 权重随训练产物挂载进容器（RUN 的根目录会被映射到 /app/runs）
+      - ../runs:/app/runs
+      # 视频推理结果落盘
+      - ./output:/app/server/output
+    restart: unless-stopped

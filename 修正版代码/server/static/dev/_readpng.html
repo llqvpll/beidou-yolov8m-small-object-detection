@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>readpng</title>
+<style>
+  html,body{margin:0;background:#ff00ff}
+  #wrap{padding:10px;background:#ff00ff}
+  #out{display:block;border:5px solid #ff00ff;box-sizing:content-box}
+</style></head>
+<body>
+<div id="wrap"><img id="out"></div>
+<script>
+/*
+ * 截图复核工具（开发用，不参与线上运行）。
+ * 用途：把 .bds-preview/shots 里的大截图缩到 ~780px 宽再截一次。
+ * 原因：直接读原图时预览端会命中相似图缓存，容易看到过期画面，误导判断。
+ *
+ * 用法：先 cp 目标图到 static/_tmp/，再访问
+ *   /dev/_readpng.html?src=../_tmp/xxx.png&w=780
+ */
+(async function () {
+  var q = new URLSearchParams(location.search);
+  var src = q.get('src');
+  var w = +(q.get('w') || 0);
+  var im = new Image();
+  im.src = src;
+  try { await im.decode(); } catch (e) { window.__err = String(e); document.title = 'err'; return; }
+  var c = document.createElement('canvas');
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  var g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(im, 0, 0);
+  window.__px = function (x, y) { return Array.from(g.getImageData(x, y, 1, 1).data).slice(0, 3); };
+  window.__size = [im.naturalWidth, im.naturalHeight];
+
+  var out = document.getElementById('out');
+  if (w && w < im.naturalWidth) {
+    var c2 = document.createElement('canvas');
+    c2.width = w; c2.height = Math.round(im.naturalHeight * w / im.naturalWidth);
+    var g2 = c2.getContext('2d');
+    g2.imageSmoothingEnabled = true; g2.imageSmoothingQuality = 'high';
+    g2.drawImage(im, 0, 0, c2.width, c2.height);
+    out.src = c2.toDataURL('image/png');
+  } else {
+    out.src = im.src;
+  }
+  document.title = 'ready';
+  window.__ready = 1;
+})();
+</script>
+</body></html>

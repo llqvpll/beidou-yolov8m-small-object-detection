@@ -1,0 +1,28 @@
+# 北斗·改进YOLOv8m 小目标识别辅助系统 —— 推理后端依赖
+# 安装：pip install -r server/requirements.txt
+
+# ---- Web 框架（high-star：FastAPI / tiangolo）----
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.9
+pydantic-settings>=2.2
+python-multipart>=0.0.9
+
+# ---- 图像 / 数组 ----
+Pillow>=9.0
+numpy>=1.23
+opencv-python>=4.7
+
+# ---- 推理框架（与「修正版代码」共用，自定义模块需先注册）----
+ultralytics>=8.4
+
+# ---- 切片推理增强（可选；不装也能跑，内置切片仍可用）----
+sahi>=0.11
+
+# ---- 可选：JSON 结构化日志 ----
+python-json-logger>=2.0
+
+# 说明：torch 不在此列出（环境相关）。
+#   CPU：pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   GPU（RTX 50 系需 sm_120 / CUDA 12.8+）：
+#       pip install torch --index-url https://download.pytorch.org/whl/cu128

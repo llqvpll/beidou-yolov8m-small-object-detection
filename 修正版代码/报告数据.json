@@ -1,0 +1,150 @@
+{
+  "runs": {
+    "smoke_visinit": {
+      "epochs": 3,
+      "best_map50": 0.07287,
+      "best_map50_epoch": 3,
+      "best_fitness_map50": 0.07287,
+      "best_fitness_epoch": 3,
+      "best_map50_95": 0.0221,
+      "last_precision": 0.3012,
+      "last_recall": 0.1163,
+      "last_map50": 0.07287,
+      "last_map50_95": 0.0221
+    },
+    "visdrone_v1": {
+      "epochs": 118,
+      "best_map50": 0.45627,
+      "best_map50_epoch": 76,
+      "best_fitness_map50": 0.4556,
+      "best_fitness_epoch": 68,
+      "best_map50_95": 0.2475,
+      "last_precision": 0.576,
+      "last_recall": 0.4323,
+      "last_map50": 0.44502,
+      "last_map50_95": 0.2472
+    },
+    "visdrone_v4": {
+      "epochs": 117,
+      "best_map50": 0.44573,
+      "best_map50_epoch": 74,
+      "best_fitness_map50": 0.44383,
+      "best_fitness_epoch": 66,
+      "best_map50_95": 0.24666,
+      "last_precision": 0.5587,
+      "last_recall": 0.4233,
+      "last_map50": 0.43432,
+      "last_map50_95": 0.24263
+    }
+  },
+  "val": {
+    "v1_improved_4scale": {
+      "label": "v1 改进版（P2 四尺度 + DySample/EMA/DualConv）",
+      "weight": "C:\\yolo_runs\\train\\visdrone_v1\\weights\\best.pt",
+      "params": 24892928,
+      "layers": 395,
+      "gflops": 99.1,
+      "images": 548,
+      "precision": 0.5713,
+      "recall": 0.4528,
+      "map50": 0.45469,
+      "map50_95": 0.2539,
+      "per_class_ap50": {
+        "pedestrian": 0.5215,
+        "people": 0.4272,
+        "bicycle": 0.2016,
+        "car": 0.8303,
+        "van": 0.4876,
+        "truck": 0.4164,
+        "tricycle": 0.3396,
+        "awning-tricycle": 0.1747,
+        "bus": 0.605,
+        "motor": 0.543
+      },
+      "fused_layers": 142,
+      "fused_params": 24876048,
+      "arch": "yolov8m_visdrone_improved.yaml",
+      "vs_std": {
+        "map50_pp": 2.85,
+        "map50_95_pp": 0.21,
+        "params_pct": -3.7,
+        "gflops_pct": 25.9
+      }
+    },
+    "v4_slimneck_nop5": {
+      "label": "v4 推荐版（Slim-Neck + 剪 P5，三尺度）",
+      "weight": "C:\\yolo_runs\\train\\visdrone_v4\\weights\\best.pt",
+      "params": 17552134,
+      "layers": 540,
+      "gflops": 78.7,
+      "images": 548,
+      "precision": 0.5566,
+      "recall": 0.4418,
+      "map50": 0.44235,
+      "map50_95": 0.24646,
+      "per_class_ap50": {
+        "pedestrian": 0.504,
+        "people": 0.4206,
+        "bicycle": 0.1665,
+        "car": 0.8295,
+        "van": 0.471,
+        "truck": 0.396,
+        "tricycle": 0.3343,
+        "awning-tricycle": 0.177,
+        "bus": 0.5975,
+        "motor": 0.5271
+      },
+      "fused_layers": 196,
+      "fused_params": 17535718,
+      "arch": "yolov8m_visdrone_slimneck_nop5.yaml",
+      "vs_std": {
+        "map50_pp": 1.62,
+        "map50_95_pp": -0.54,
+        "params_pct": -32.1,
+        "gflops_pct": 0.0
+      },
+      "vs_v1": {
+        "map50_pp": -1.23,
+        "params_pct": -29.5,
+        "gflops_pct": -20.6
+      }
+    },
+    "std_yolov8m_visdrone": {
+      "label": "标准 YOLOv8m-VisDrone（外部现成权重）",
+      "weight": "C:\\visdrone_weights_eval\\best(yolov8m-visdrone).pt",
+      "params": 25862110,
+      "layers": 295,
+      "gflops": 78.7,
+      "images": 548,
+      "precision": 0.5596,
+      "recall": 0.4332,
+      "map50": 0.42619,
+      "map50_95": 0.25182,
+      "per_class_ap50": {
+        "pedestrian": 0.4598,
+        "people": 0.3543,
+        "bicycle": 0.1858,
+        "car": 0.7896,
+        "van": 0.4525,
+        "truck": 0.4108,
+        "tricycle": 0.3284,
+        "awning-tricycle": 0.1616,
+        "bus": 0.6359,
+        "motor": 0.4832
+      },
+      "fused_layers": 92,
+      "fused_params": 25845550,
+      "arch": "标准 YOLOv8m"
+    }
+  },
+  "train_args": {
+    "data": "VisDrone2019-DET（10 类，train 6471 / val 548）",
+    "imgsz": 640,
+    "batch": 4,
+    "optimizer": "AdamW",
+    "lr0": 0.0005,
+    "epochs_requested": 150,
+    "device": "NVIDIA GeForce RTX 5060 Ti (8 GB)",
+    "note": "两个 run 均因早停在实际 117~118 轮结束；论文旧稿写的 imgsz 1024×1280 与本机 args.yaml 不符，已按实测更正"
+  }
+}

@@ -1,0 +1,15 @@
+# 构建上下文：修正版代码/
+# 排除大体积/无关内容，加速构建并避免把权重打进镜像
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.ipynb_checkpoints/
+runs/
+server/output/
+server/**/output/
+*.log
+.git/
+.gitignore
+.env
+**/__pycache__/
+OneDrive/

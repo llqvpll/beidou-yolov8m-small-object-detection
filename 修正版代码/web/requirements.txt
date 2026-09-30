@@ -1,0 +1,11 @@
+# Web 后端依赖（轻量，安装快）
+flask>=3.0
+werkzeug>=3.0
+opencv-python>=4.7
+pillow>=9.0
+numpy>=1.23
+
+# 以下由「修正版代码」统一安装，无需在此重复：
+#   ultralytics>=8.4        （训练/推理框架）
+#   torch                   （按机器选 CPU 或 CUDA 12.8+ 版，RTX 50 系需 sm_120 支持）
+# 自定义模块（EMA/DySample/DualConv/GSConv/VoVGSCSP）通过 install_custom_modules.py 注册。

@@ -1,0 +1,64 @@
+# =============================================================================
+# YOLOv8m 改进模型结构（VisDrone 小目标版 · 可直接被 YOLO() 加载）
+# 对应原附录：yolov8m_ema_nwd.yaml + yolov8m_override.yaml（已合并修正）
+#
+# 相对原版的关键修正：
+#   [P0-4] nc: 80 -> 10（VisDrone2019-DET 共 10 类）
+#   [P0-2] 补全 backbone / scales，删除 v8 无效字段(anchors / depth_multiple ...)，
+#          显式声明 scale: m，避免靠文件名猜尺度
+#   [P0-5] 三/四个尺度统一由单个 Detect 输出（anchor-free），不再每尺度单开 Detect
+#   [P0-3] EMAAttention / DySample / DualConv 需先 register_custom_modules()
+#   额外：新增 P2(stride=4) 分支，改善超小目标召回
+# =============================================================================
+
+nc: 10          # VisDrone2019-DET
+scale: m        # 显式指定尺度，避免文件名歧义
+# [depth, width, max_channels]
+scales:
+  n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]        # 0  P1/2
+  - [-1, 1, Conv, [128, 3, 2]]       # 1  P2/4  -> 供 P2 分支使用
+  - [-1, 3, C2f, [128, True]]        # 2
+  - [-1, 1, Conv, [256, 3, 2]]       # 3  P3/8
+  - [-1, 6, C2f, [256, True]]        # 4
+  - [-1, 1, Conv, [512, 3, 2]]       # 5  P4/16
+  - [-1, 6, C2f, [512, True]]        # 6
+  - [-1, 1, Conv, [1024, 3, 2]]      # 7  P5/32
+  - [-1, 3, C2f, [1024, True]]       # 8
+  - [-1, 1, SPPF, [1024, 5]]         # 9
+
+head:
+  - [-1, 1, DySample, [1024]]        # 10 P5 -> P4 尺度（动态上采样）
+  - [[-1, 6], 1, Concat, [1]]        # 11 cat backbone P4
+  - [-1, 3, C2f, [512]]              # 12
+  - [-1, 1, EMAAttention, [512, 32]]# 13 注意力强化
+
+  - [-1, 1, DySample, [512]]         # 14 -> P3 尺度
+  - [[-1, 4], 1, Concat, [1]]        # 15 cat backbone P3
+  - [-1, 3, C2f, [256]]              # 16
+  - [-1, 1, EMAAttention, [256, 32]]# 17
+
+  - [-1, 1, DySample, [256]]         # 18 -> P2 尺度
+  - [[-1, 2], 1, Concat, [1]]        # 19 cat backbone P2（超小目标分支）
+  - [-1, 3, C2f, [128]]              # 20  P2/4   -> Detect
+
+  - [-1, 1, DualConv, [128, 3, 2]]   # 21 轻量下采样 -> P3 尺度
+  - [[-1, 16], 1, Concat, [1]]       # 22 cat head P3
+  - [-1, 3, C2f, [256]]              # 23  P3/8   -> Detect
+
+  - [-1, 1, DualConv, [256, 3, 2]]   # 24 轻量下采样 -> P4 尺度
+  - [[-1, 12], 1, Concat, [1]]       # 25 cat head P4
+  - [-1, 3, C2f, [512]]              # 26  P4/16  -> Detect
+
+  - [-1, 1, DualConv, [512, 3, 2]]   # 27 轻量下采样 -> P5 尺度
+  - [[-1, 9], 1, Concat, [1]]        # 28 cat backbone P5
+  - [-1, 3, C2f, [1024]]             # 29  P5/32  -> Detect
+
+  - [[20, 23, 26, 29], 1, Detect, [nc]]  # 30 四尺度检测头（anchor-free）

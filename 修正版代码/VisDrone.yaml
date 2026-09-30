@@ -1,0 +1,29 @@
+# VisDrone2019-DET 数据配置（10 类）
+# 用法：本文件已是 train_v8.py 的默认 --data，无需再复制到 ultralytics 里。
+# 只需把下面的 path: 改成你本机 VisDrone2019-DET 数据集的根目录即可（建议写绝对路径）。
+#
+#   目录结构要求：
+#     <path>/
+#       ├── images/{train,val,test}/*.jpg
+#       └── labels/{train,val,test}/*.txt      # YOLO 格式，与 images 同名
+#
+# 相对路径是相对 ultralytics 的 datasets_dir 设置解析的，容易踩坑，所以推荐绝对路径，例如：
+#   path: D:/datasets/VisDrone
+path: C:/datasets/VisDrone     # 绝对路径；数据由 visdrone2yolo.py 从 C:/datasets/VisDrone2019-DET 转换而来
+
+train: images/train
+val: images/val
+test: images/test
+
+# VisDrone2019-DET 官方 10 类（忽略 ignored regions / others）
+names:
+  0: pedestrian
+  1: people
+  2: bicycle
+  3: car
+  4: van
+  5: truck
+  6: tricycle
+  7: awning-tricycle
+  8: bus
+  9: motor

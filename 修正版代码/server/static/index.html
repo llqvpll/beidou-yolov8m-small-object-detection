@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-pal="soft" data-density="comfortable">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="北斗 · 改进 YOLOv8m 小目标识别辅助系统 —— 检测工作台">
+<title>北斗 · 改进 YOLOv8m 小目标识别辅助系统</title>
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='3.4' fill='%234d9eff'/%3E%3Cellipse cx='12' cy='12' rx='10' ry='4.2' fill='none' stroke='%238b7cff' stroke-width='1.3' transform='rotate(-30 12 12)'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- ======================= 图标精灵 ======================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <g id="i-satellite"><path d="M13 7 9 3 5 7l4 4"/><path d="m17 11 4 4-4 4-4-4"/><path d="m8 12 4 4 6-6-4-4Z"/><path d="m16 8 3-3"/><path d="M9 21a6 6 0 0 0-6-6"/></g>
+  <g id="i-scan"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/></g>
+  <g id="i-list"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></g>
+  <g id="i-chart"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></g>
+  <g id="i-globe"><circle cx="12" cy="12" r="9"/><path d="M12 3a14.5 14.5 0 0 0 0 18 14.5 14.5 0 0 0 0-18"/><path d="M3 12h18"/></g>
+  <g id="i-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></g>
+  <g id="i-search"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4-4"/></g>
+  <g id="i-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v13"/></g>
+  <g id="i-image"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.8" cy="8.8" r="1.8"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></g>
+  <g id="i-film"><rect x="2" y="2" width="20" height="20" rx="2.2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></g>
+  <g id="i-camera"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></g>
+  <g id="i-layers"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></g>
+  <g id="i-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></g>
+  <g id="i-refresh"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></g>
+  <g id="i-play"><path d="M6 3.5 20 12 6 20.5Z"/></g>
+  <g id="i-stop"><rect x="5" y="5" width="14" height="14" rx="1.5"/></g>
+  <g id="i-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></g>
+  <g id="i-check"><path d="M20 6 9 17l-5-5"/></g>
+  <g id="i-alert"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></g>
+  <g id="i-info"><circle cx="12" cy="12" r="9.5"/><path d="M12 16v-4.5"/><path d="M12 8h.01"/></g>
+  <g id="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></g>
+  <g id="i-moon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></g>
+  <g id="i-monitor"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></g>
+  <g id="i-zoom-in"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4-4"/><path d="M11 8.5v5M8.5 11h5"/></g>
+  <g id="i-zoom-out"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4-4"/><path d="M8.5 11h5"/></g>
+  <g id="i-fit"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></g>
+  <g id="i-1to1"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></g>
+  <g id="i-copy"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g>
+  <g id="i-trash"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></g>
+  <g id="i-chev-r"><path d="m9 18 6-6-6-6"/></g>
+  <g id="i-chev-d"><path d="m6 9 6 6 6-6"/></g>
+  <g id="i-cpu"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></g>
+  <g id="i-activity"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></g>
+  <g id="i-clock"><circle cx="12" cy="12" r="9.5"/><path d="M12 6.5V12l3.5 2"/></g>
+  <g id="i-help"><circle cx="12" cy="12" r="9.5"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></g>
+  <g id="i-keyboard"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M18 12h.01M8 16h8"/></g>
+  <g id="i-filter"><path d="M22 3H2l8 9.46V19l4 2v-8.54Z"/></g>
+  <g id="i-sort"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></g>
+  <g id="i-crosshair"><circle cx="12" cy="12" r="9"/><path d="M21 12h-4M7 12H3M12 3v4M12 21v-4"/><circle cx="12" cy="12" r="1.6"/></g>
+  <g id="i-box"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></g>
+  <g id="i-gauge"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></g>
+  <g id="i-table"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M12 3v18"/></g>
+  <g id="i-file"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></g>
+  <g id="i-panel-l"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9.5 3v18"/></g>
+  <g id="i-panel-r"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M14.5 3v18"/></g>
+  <g id="i-eye"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></g>
+  <g id="i-eye-off"><path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.2 6.2A17.6 17.6 0 0 0 2 12s3.5 7 10 7a10.7 10.7 0 0 0 5-1.2"/><path d="M2 2l20 20"/></g>
+  <g id="i-dashed"><path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/><path d="M21 19a2 2 0 0 1-2 2"/><path d="M5 21a2 2 0 0 1-2-2"/><path d="M9 3h1M14 3h1M9 21h1M14 21h1M3 9v1M3 14v1M21 9v1M21 14v1"/></g>
+  <g id="i-nav"><path d="M3 11 22 2l-9 19-2-8-8-2Z"/></g>
+  <g id="i-terminal"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></g>
+  <g id="i-command"><path d="M15 6a3 3 0 1 1 3 3h-3Zm0 12a3 3 0 1 0 3-3h-3ZM9 6a3 3 0 1 0-3 3h3Zm0 12a3 3 0 1 1-3-3h3Z"/><rect x="9" y="9" width="6" height="6"/></g>
+  <g id="i-plug"><path d="M12 22v-4"/><path d="M9 8V2M15 8V2"/><path d="M6 8h12v4a6 6 0 0 1-12 0Z"/></g>
+  <g id="i-plug-off"><path d="M12 22v-4"/><path d="M9 8V2M15 8V2"/><path d="M6 8h12v4a6 6 0 0 1-3 5.2"/><path d="M2 2l20 20"/></g>
+  <g id="i-grid"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></g>
+  <g id="i-tag"><path d="M12.6 2.6a2 2 0 0 0-1.4-.6H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.2 8.2a2 2 0 0 0 2.8 0l7.2-7.2a2 2 0 0 0 0-2.8Z"/><path d="M7 7h.01"/></g>
+  <g id="i-hash"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></g>
+  <g id="i-mask"><path d="M3 4h18v6a6 6 0 0 1-6 6h-1l-2 4-2-4H9a6 6 0 0 1-6-6Z"/></g>
+  <g id="i-flip"><path d="M12 3v18"/><path d="M8 8 4 12l4 4"/><path d="m16 8 4 4-4 4"/></g>
+  <g id="i-full"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><path d="M8 12h8"/></g>
+  <g id="i-target"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></g>
+  <g id="i-plus"><path d="M12 5v14M5 12h14"/></g>
+  <g id="i-sparkles"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></g>
+</defs>
+</svg>
+
+<div class="app">
+
+  <!-- ======================= 左侧图标栏 ======================= -->
+  <aside class="rail">
+    <div class="rail-logo" id="rail-logo" title="北斗 · 小目标识别辅助系统">
+      <svg viewBox="0 0 24 24">
+        <circle class="rl-core" cx="12" cy="12" r="3.1"/>
+        <ellipse class="rl-o1" cx="12" cy="12" rx="10" ry="4.1" transform="rotate(-30 12 12)"/>
+        <ellipse class="rl-o2" cx="12" cy="12" rx="10" ry="4.1" transform="rotate(45 12 12)"/>
+        <circle class="rl-sat" cx="20.6" cy="8.4" r="1.3"/>
+      </svg>
+    </div>
+
+    <button class="rail-btn" data-view="detect" aria-current="page" data-tip="检测台">
+      <svg><use href="#i-scan"/></svg>
+    </button>
+    <button class="rail-btn" data-view="jobs" data-tip="任务">
+      <svg><use href="#i-list"/></svg>
+    </button>
+    <button class="rail-btn" data-view="analytics" data-tip="分析">
+      <svg><use href="#i-chart"/></svg>
+    </button>
+    <button class="rail-btn" data-view="geo" data-tip="北斗定位">
+      <svg><use href="#i-globe"/></svg>
+    </button>
+
+    <div class="rail-spacer"></div>
+
+    <button class="rail-btn" id="rail-keys" data-tip="快捷键">
+      <svg><use href="#i-keyboard"/></svg>
+    </button>
+    <button class="rail-btn" id="rail-about" data-tip="关于">
+      <svg><use href="#i-info"/></svg>
+    </button>
+    <button class="rail-btn" data-view="settings" data-tip="设置">
+      <svg><use href="#i-settings"/></svg>
+    </button>
+  </aside>
+
+  <!-- ======================= 主壳 ======================= -->
+  <div class="shell">
+
+    <!-- ---------- 顶栏 ---------- -->
+    <header class="topbar">
+      <div class="tb-title">
+        <h1>北斗 · 改进 YOLOv8m 小目标识别辅助系统</h1>
+        <span class="ver">v1.0</span>
+      </div>
+      <div class="tb-gap"></div>
+      <div class="tb-group tb-hide-sm">
+        <span class="chip" id="pill-mode"><span class="dot"></span>检测中…</span>
+        <span class="chip" id="pill-device"><span class="dot"></span>设备 …</span>
+        <span class="chip" id="pill-model"><span class="dot"></span>模型 …</span>
+        <select id="model-select" class="model-select" title="选择要加载的模型权重" disabled>
+          <option>加载中…</option>
+        </select>
+      </div>
+      <button class="cmd-trigger focus-none" id="cmd-open" aria-label="打开命令面板">
+        <svg><use href="#i-search"/></svg>
+        <span>搜索或跳转…</span>
+        <span class="k"><kbd>Ctrl</kbd> <kbd>K</kbd></span>
+      </button>
+      <div class="tb-group">
+        <button class="ibtn" id="btn-theme" aria-label="切换主题" title="切换主题">
+          <svg><use href="#i-moon"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ---------- 视图 ---------- -->
+    <main class="views">
+
+      <!-- ========== 1. 检测台 ========== -->
+      <section class="view is-active" id="view-detect">
+
+        <!-- 左栏 -->
+        <div class="panel col-l" id="col-l">
+          <div class="panel-hd">
+            <h2>输入与控制</h2>
+            <div class="sp"></div>
+            <button class="ibtn sm" id="btn-hide-l" title="收起面板"><svg><use href="#i-panel-l"/></svg></button>
+          </div>
+          <div class="panel-bd">
+
+            <!-- 输入源 -->
+            <div class="sec">
+              <div class="sec-bd">
+                <div class="seg" id="seg-source" role="tablist" aria-label="输入源">
+                  <button class="seg-btn" data-src="image" role="tab" aria-selected="true">
+                    <svg><use href="#i-image"/></svg>图片
+                  </button>
+                  <button class="seg-btn" data-src="video" role="tab" aria-selected="false">
+                    <svg><use href="#i-film"/></svg>视频
+                  </button>
+                  <button class="seg-btn" data-src="cam" role="tab" aria-selected="false">
+                    <svg><use href="#i-camera"/></svg>摄像头
+                  </button>
+                </div>
+
+                <div data-src-panel="image">
+                  <div class="dropzone" id="dz">
+                    <div class="dz-ic"><svg><use href="#i-upload"/></svg></div>
+                    <div class="dz-t">拖拽图片到此处</div>
+                    <div class="dz-s">或点击选择文件 · 支持批量</div>
+                    <div class="dz-f">JPG · PNG · WEBP · BMP</div>
+                  </div>
+                  <button class="btn btn-block" id="btn-demo" style="margin-top:12px">
+                    <svg><use href="#i-sparkles"/></svg>载入演示场景
+                  </button>
+                </div>
+
+                <div data-src-panel="video" hidden>
+                  <div class="dropzone" id="dz-video">
+                    <div class="dz-ic"><svg><use href="#i-film"/></svg></div>
+                    <div class="dz-t">选择视频文件</div>
+                    <div class="dz-s">服务端逐帧推理，异步任务</div>
+                    <div class="dz-f">MP4 · AVI · MOV · MKV</div>
+                  </div>
+                  <p class="fld-hint" style="margin-top:10px">
+                    提交后转为后台任务，可在「任务」视图查看进度与结果视频。
+                  </p>
+                  <div class="fld-hint" id="video-crowd-tip" style="margin-top:6px"></div>
+                </div>
+
+                <div data-src-panel="cam" hidden>
+                  <button class="btn btn-block" id="btn-cam-start">
+                    <svg><use href="#i-play"/></svg>启动实时摄像头
+                  </button>
+                  <button class="btn btn-block" id="btn-cam-stop" disabled style="margin-top:8px">
+                    <svg><use href="#i-stop"/></svg>停止
+                  </button>
+                  <p class="fld-hint" style="margin-top:10px">
+                    浏览器逐帧抽帧送至后端推理。实时帧率取决于 GPU 与网络延迟。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 队列 -->
+            <div class="sec">
+              <div class="sec-hd">
+                <span class="t">队列</span>
+                <div class="sp"></div>
+                <span class="count-chip" id="queue-count">0</span>
+                <button class="ibtn sm" id="btn-clear-queue" title="清空队列"><svg><use href="#i-trash"/></svg></button>
+              </div>
+              <div class="sec-bd">
+                <div class="filelist" id="filelist"></div>
+              </div>
+            </div>
+
+            <!-- 推理参数 -->
+            <div class="sec">
+              <div class="sec-hd">
+                <span class="t">推理参数</span>
+                <div class="sp"></div>
+                <button class="ibtn sm" id="btn-params-reset"
+                        title="恢复默认推理参数（置信度 0.25 · IoU 0.45 · 640 · 300）">
+                  <svg><use href="#i-refresh"/></svg>
+                </button>
+              </div>
+              <div class="sec-bd">
+                <div class="fld">
+                  <div class="fld-hd">
+                    <label for="p-conf">置信度阈值</label><div class="sp"></div>
+                    <span class="fld-val" id="p-conf-v">0.25</span>
+                  </div>
+                  <input type="range" class="rng" id="p-conf" min="0.01" max="0.99" step="0.01" value="0.25">
+                  <div class="fld-hint">即时过滤已返回的候选框，不触发重新推理。</div>
+                </div>
+
+                <div class="fld">
+                  <div class="fld-hd">
+                    <label for="p-iou">IoU 阈值</label><div class="sp"></div>
+                    <span class="fld-val" id="p-iou-v">0.45</span>
+                  </div>
+                  <input type="range" class="rng" id="p-iou" min="0.05" max="0.95" step="0.05" value="0.45">
+                  <div class="fld-hint">NMS 去重强度。小目标密集场景建议 0.5 ~ 0.7。</div>
+                </div>
+
+                <div class="fld">
+                  <div class="fld-hd"><label>输入尺寸</label></div>
+                  <div class="seg sm" id="seg-imgsz" role="tablist">
+                    <button class="seg-btn" data-v="640" role="tab" aria-selected="true">640</button>
+                    <button class="seg-btn" data-v="768" role="tab" aria-selected="false">768</button>
+                    <button class="seg-btn" data-v="1024" role="tab" aria-selected="false">1024</button>
+                    <button class="seg-btn" data-v="1280" role="tab" aria-selected="false">1280</button>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <span class="lbl">最大目标数</span><div class="sp"></div>
+                  <input class="input mono" id="p-maxdet" type="number" min="1" max="3000" step="50" value="300"
+                         style="width:84px;height:28px;text-align:right">
+                </div>
+
+                <div class="row">
+                  <span class="lbl">切片推理</span>
+                  <span class="tag" title="SAHI 思路：大图切片分别检测再合并，不改模型、无需重训">SAHI</span>
+                  <div class="sp"></div>
+                  <button class="switch" id="p-slice" role="switch" aria-checked="false" aria-label="切片推理"></button>
+                </div>
+                <div id="p-slice-opts" hidden class="fld">
+                  <div class="fld-hd"><label for="p-slice-size">切片边长 / 重叠</label><div class="sp"></div>
+                    <span class="fld-val" id="p-slice-v">640 · 0.20</span></div>
+                  <input type="range" class="rng" id="p-slice-size" min="320" max="1280" step="64" value="640">
+                  <input type="range" class="rng" id="p-slice-overlap" min="0" max="0.5" step="0.05" value="0.2">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 左栏底部操作 -->
+          <div style="flex:0 0 auto;padding:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;background:var(--panel)">
+            <button class="btn btn-primary btn-block" id="btn-run">
+              <svg><use href="#i-play"/></svg>开始推理
+            </button>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" id="btn-export" style="flex:1" disabled>
+                <svg><use href="#i-download"/></svg>导出
+              </button>
+              <button class="btn btn-sm" id="btn-reset" style="flex:1">
+                <svg><use href="#i-refresh"/></svg>重置
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 中栏：舞台 -->
+        <div class="col-c">
+          <div class="stage-toolbar">
+            <button class="ibtn" id="btn-zoom-out" title="缩小 ( - )"><svg><use href="#i-zoom-out"/></svg></button>
+            <span class="zoom-val" id="zoom-val">100%</span>
+            <button class="ibtn" id="btn-zoom-in" title="放大 ( + )"><svg><use href="#i-zoom-in"/></svg></button>
+            <button class="ibtn" id="btn-fit" title="适应窗口 ( F )"><svg><use href="#i-fit"/></svg></button>
+            <button class="ibtn" id="btn-actual" title="实际像素 ( 1 )"><svg><use href="#i-1to1"/></svg></button>
+            <div class="tb-sep"></div>
+            <button class="ibtn is-on" id="tg-boxes" title="显示检测框 ( B )"><svg><use href="#i-box"/></svg></button>
+            <button class="ibtn is-on" id="tg-labels" title="显示类别标签 ( L )"><svg><use href="#i-tag"/></svg></button>
+            <button class="ibtn" id="tg-index" title="显示序号 ( N )"><svg><use href="#i-hash"/></svg></button>
+            <button class="ibtn is-on" id="tg-conf" title="显示置信度条 ( C )"><svg><use href="#i-gauge"/></svg></button>
+            <button class="ibtn" id="tg-mask" title="显示目标遮罩 ( M )"><svg><use href="#i-mask"/></svg></button>
+            <div class="tb-sep"></div>
+            <button class="ibtn" id="tg-compare" title="原图 / 标注对比 ( V )"><svg><use href="#i-flip"/></svg></button>
+            <button class="ibtn" id="tg-grid" title="显示参考栅格 ( G )"><svg><use href="#i-grid"/></svg></button>
+            <div class="sp" style="flex:1"></div>
+            <button class="ibtn only-narrow" id="btn-panel-l" title="显示/隐藏输入面板"><svg><use href="#i-panel-l"/></svg></button>
+            <button class="ibtn" id="btn-full" title="全屏"><svg><use href="#i-full"/></svg></button>
+            <button class="ibtn" id="btn-panel-r" title="显示/隐藏检查器"><svg><use href="#i-panel-r"/></svg></button>
+          </div>
+
+          <div class="stage" id="stage">
+            <div class="stage-hud tl" id="hud-tl"><span class="k">STANDBY</span></div>
+            <div class="stage-hud tr" id="hud-tr" hidden></div>
+            <div class="stage-hud bl" id="hud-bl" hidden></div>
+            <div class="stage-hud br" id="hud-br" hidden></div>
+
+            <div class="banner" id="banner"><svg><use href="#i-info"/></svg><span id="banner-t"></span>
+              <button class="ibtn sm x" id="banner-x"><svg><use href="#i-x"/></svg></button></div>
+
+            <div class="cvwrap" id="cvwrap">
+              <canvas id="cv"></canvas>
+            </div>
+
+            <div class="stage-empty" id="stage-empty">
+              <div class="orb">
+                <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+                <div class="sweep"></div>
+                <div class="core"></div>
+                <span class="sat" style="top:4px;left:56px"></span>
+                <span class="sat" style="top:96px;left:12px"></span>
+                <span class="sat" style="top:74px;left:104px"></span>
+              </div>
+              <div>
+                <h3>等待目标接入</h3>
+                <p>拖入一张图片、选择一个视频，或开启摄像头开始识别。系统将输出检测框、类别、置信度，并结合北斗定位给出目标的地理坐标估算。</p>
+              </div>
+              <div class="hints">
+                <button class="btn btn-sm" id="btn-demo2"><svg><use href="#i-sparkles"/></svg>载入演示场景</button>
+                <button class="btn btn-sm btn-ghost" id="btn-keys2"><svg><use href="#i-keyboard"/></svg>快捷键</button>
+              </div>
+            </div>
+
+            <div class="busy" id="busy">
+              <div class="spinner"></div>
+              <div class="txt" id="busy-txt">推理中…</div>
+            </div>
+          </div>
+
+          <div class="filmstrip is-empty" id="filmstrip"></div>
+        </div>
+
+        <!-- 右栏：检查器 -->
+        <div class="panel col-r" id="col-r">
+          <div class="panel-hd">
+            <h2>检测结果</h2>
+            <div class="sp"></div>
+            <button class="ibtn sm" id="btn-hide-r" title="收起面板"><svg><use href="#i-panel-r"/></svg></button>
+          </div>
+
+          <div class="tiles c2">
+            <div class="tile">
+              <span class="k">目标总数</span>
+              <span class="v accent" id="kpi-total">0</span>
+              <span class="d" id="kpi-total-d">—</span>
+            </div>
+            <div class="tile">
+              <span class="k">平均置信度</span>
+              <span class="v" id="kpi-conf">—</span>
+              <span class="d" id="kpi-conf-d">—</span>
+            </div>
+            <div class="tile">
+              <span class="k">推理耗时</span>
+              <span class="v" id="kpi-ms">—<small>ms</small></span>
+              <span class="d" id="kpi-ms-d">—</span>
+            </div>
+            <div class="tile">
+              <span class="k">小目标占比</span>
+              <span class="v" id="kpi-small">—</span>
+              <span class="d" id="kpi-small-d">&lt; 32² px</span>
+            </div>
+          </div>
+
+          <!-- 人群密度监测与聚集预警 -->
+          <div class="sec" id="crowd-sec" style="flex:0 0 auto">
+            <div class="sec-hd">
+              <span class="t">人群密度</span><div class="sp"></div>
+              <span class="tag" id="crowd-level">—</span>
+            </div>
+            <div class="sec-bd">
+              <dl class="kv kv-l">
+                <dt>人数</dt><dd id="crowd-count">—</dd>
+                <dt>密度</dt><dd id="crowd-density">—</dd>
+                <dt>画面占比</dt><dd id="crowd-occ">—</dd>
+                <dt>构成</dt><dd id="crowd-breakdown">—</dd>
+                <dt>分级阈值</dt><dd id="crowd-th">—</dd>
+              </dl>
+              <div class="fld" style="margin-top:10px">
+                <div class="fld-hd"><span>画面实际覆盖面积（m²）</span></div>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input class="input mono" id="crowd-area" type="number" min="0" step="1"
+                         placeholder="如 500" style="height:28px;flex:1">
+                  <button class="btn btn-sm" id="crowd-apply">应用并重跑</button>
+                </div>
+                <div class="fld-hint" id="crowd-hint">
+                  未标定：只统计人数，不给密度。填入画面实际覆盖面积后重跑，即可得出密度与分级。
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sec" style="flex:0 0 auto">
+            <div class="sec-hd">
+              <span class="t">类别分布</span><div class="sp"></div>
+              <span class="count-chip" id="dist-count">0</span>
+            </div>
+            <div class="dist" id="dist"></div>
+          </div>
+
+          <div class="sec" style="flex:1;min-height:0;display:flex;flex-direction:column">
+            <div class="sec-hd">
+              <span class="t">检测列表</span><div class="sp"></div>
+              <span class="count-chip" id="det-count">0</span>
+            </div>
+            <div class="searchbar" style="padding-top:0;border-bottom:0">
+              <div class="input-group" style="flex:1">
+                <svg><use href="#i-search"/></svg>
+                <input class="input" id="det-search" placeholder="筛选类别 / 最小置信度…" style="height:28px">
+              </div>
+              <button class="ibtn sm" id="det-sort" title="排序：置信度"><svg><use href="#i-sort"/></svg></button>
+            </div>
+            <div class="panel-bd insp-list" id="det-list" style="padding-bottom:8px"></div>
+          </div>
+
+          <div class="sec" id="detail" style="flex:0 0 auto" hidden>
+            <div class="sec-hd">
+              <span class="t">选中目标</span><div class="sp"></div>
+              <button class="ibtn sm" id="detail-locate" title="定位到该目标"><svg><use href="#i-crosshair"/></svg></button>
+            </div>
+            <div class="detail" id="detail-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== 2. 任务 ========== -->
+      <section class="view" id="view-jobs">
+        <div class="panel">
+          <div class="panel-hd">
+            <h2>推理任务</h2>
+            <div class="sp"></div>
+            <span class="count-chip" id="job-count">0</span>
+            <button class="ibtn sm" id="btn-job-refresh" title="刷新"><svg><use href="#i-refresh"/></svg></button>
+          </div>
+          <div class="panel-bd" id="job-list"></div>
+        </div>
+        <div class="panel col-r">
+          <div class="panel-hd">
+            <h2>任务详情</h2>
+            <div class="sp"></div>
+            <span class="chip" id="job-status-chip"><span class="dot"></span>—</span>
+          </div>
+          <div class="panel-bd" id="job-detail"></div>
+        </div>
+      </section>
+
+      <!-- ========== 3. 分析（全系统分析汇总） ========== -->
+      <!--
+        这个视图的定位是**汇总**：系统各处算出来的东西都收在这里，一处看全。
+        每段都标了数据来源，因为它们的口径完全不同 —— 混在一起会让人拿
+        "本次会话的 12 个目标"去跟"训练的 mAP50"对比，那是对不上的。
+      -->
+      <section class="view" id="view-analytics">
+        <div class="an-wrap">
+
+          <!-- ---------- 3.1 本次会话检测 ---------- -->
+          <div class="an-sec">
+            <h2>本次会话检测</h2>
+            <p>来源：本机浏览器累计的推理记录（仅存于本机，可导出 JSON）。</p>
+            <div class="sp"></div>
+            <button class="btn btn-sm" id="btn-an-export"><svg><use href="#i-download"/></svg>导出 JSON</button>
+            <button class="btn btn-sm btn-ghost" id="btn-an-clear"><svg><use href="#i-trash"/></svg>清空</button>
+          </div>
+          <div class="an-grid">
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">累计处理图像</span><span class="v" id="an-frames">0</span>
+              <span class="d" id="an-frames-d">本次会话</span></div></div></div>
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">累计检出目标</span><span class="v accent" id="an-dets">0</span>
+              <span class="d" id="an-dets-d">—</span></div></div></div>
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">平均置信度</span><span class="v" id="an-avgconf">—</span>
+              <span class="d" id="an-avgconf-d">全部类别</span></div></div></div>
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">P95 推理耗时</span><span class="v" id="an-p95">—<small>ms</small></span>
+              <span class="d" id="an-p95-d">—</span></div></div></div>
+
+            <div class="an-card span-5">
+              <div class="hd"><h3>类别构成</h3><div class="sp"></div>
+                <span class="tag" id="an-donut-total">0</span></div>
+              <div class="bd" style="display:grid;place-items:center"><div id="ch-donut"></div></div>
+            </div>
+
+            <div class="an-card span-7">
+              <div class="hd"><h3>类别检出量</h3><div class="sp"></div>
+                <span class="tag">按总数排序</span></div>
+              <div class="bd"><div id="ch-classbar"></div></div>
+            </div>
+
+            <div class="an-card span-7">
+              <div class="hd"><h3>推理耗时趋势</h3><div class="sp"></div>
+                <span class="tag" id="an-lat-n">0 次</span></div>
+              <div class="bd"><div id="ch-latency"></div></div>
+            </div>
+
+            <div class="an-card span-5">
+              <div class="hd"><h3>置信度分布</h3><div class="sp"></div>
+                <span class="tag">0.05 → 1.00</span></div>
+              <div class="bd"><div id="ch-confhist"></div></div>
+            </div>
+
+            <div class="an-card span-12">
+              <div class="hd"><h3>类别明细</h3><div class="sp"></div>
+                <span class="tag" id="an-table-note">—</span></div>
+              <div class="bd" style="padding-top:0;overflow:auto"><div id="an-table"></div></div>
+            </div>
+          </div>
+
+          <!-- ---------- 3.2 模型与训练 ---------- -->
+          <!-- 原「设置 · 训练成果」。设置页只该放偏好项，训练指标是分析结果，搬过来。 -->
+          <div class="an-sec">
+            <h2>模型与训练</h2>
+            <p id="train-sub">来源：后端只读解析当前已加载权重所属 run 的训练产物（results.csv / args.yaml / 消融对比表）。</p>
+            <div class="sp"></div>
+            <span class="tag" id="train-run">—</span>
+            <button class="btn btn-sm btn-ghost" id="btn-train-reload"><svg><use href="#i-refresh"/></svg>重读</button>
+          </div>
+          <div class="an-grid">
+            <div class="an-card span-12"><div class="bd">
+              <div class="train-kpis" id="train-kpis">
+                <div class="kpi"><span class="k">最佳 mAP50</span><span class="v">—</span><span class="d">—</span></div>
+                <div class="kpi"><span class="k">mAP50-95</span><span class="v">—</span><span class="d">—</span></div>
+                <div class="kpi"><span class="k">参数量</span><span class="v">—</span><span class="d">—</span></div>
+                <div class="kpi"><span class="k">训练轮数</span><span class="v">—</span><span class="d">—</span></div>
+              </div>
+              <!-- 两个「最优」不是同一轮：KPI 按 mAP50 峰值选，best.pt 按 fitness 选。
+                   不说明的话，KPI 的 44.6% 会和 PR 曲线上的 44.2% 看起来互相矛盾。 -->
+              <div id="train-best-note" class="train-note" style="margin-top:10px" hidden></div>
+            </div></div>
+
+            <div class="an-card span-12">
+              <div class="hd"><h3>收敛曲线</h3><div class="sp"></div>
+                <span class="tag" id="train-curve-sub">—</span></div>
+              <div class="bd"><div id="train-curve"></div></div>
+            </div>
+
+            <div class="an-card span-12">
+              <div class="hd"><h3>消融对比</h3><div class="sp"></div>
+                <span class="tag" id="train-cmp-sub">—</span></div>
+              <div class="bd" style="overflow:auto"><div id="train-cmp"></div>
+                <div id="train-note" class="train-note" style="margin-top:10px">尚未连接后端。</div></div>
+            </div>
+
+            <div class="an-card span-12" id="train-art-row" hidden>
+              <div class="hd"><h3>训练配图</h3><div class="sp"></div>
+                <span class="tag" id="train-art-sub">—</span></div>
+              <div class="bd"><div class="train-art" id="train-art"></div></div>
+            </div>
+          </div>
+
+          <!-- ---------- 3.3 视频任务汇总 ---------- -->
+          <div class="an-sec">
+            <h2>视频任务汇总</h2>
+            <p>来源：后端已完成/进行中的视频推理任务（逐帧检测 + 人群密度）。</p>
+            <div class="sp"></div>
+            <span class="tag" id="an-jobs-note">—</span>
+            <button class="btn btn-sm btn-ghost" id="btn-an-jobs"><svg><use href="#i-refresh"/></svg>刷新</button>
+          </div>
+          <div class="an-grid">
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">已完成任务</span><span class="v" id="aj-tasks">0</span>
+              <span class="d" id="aj-tasks-d">—</span></div></div></div>
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">累计处理帧</span><span class="v" id="aj-frames">0</span>
+              <span class="d" id="aj-frames-d">—</span></div></div></div>
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">累计检出目标</span><span class="v accent" id="aj-dets">0</span>
+              <span class="d" id="aj-dets-d">—</span></div></div></div>
+            <div class="an-card span-3"><div class="bd"><div class="kpi">
+              <span class="k">人群密度峰值</span><span class="v" id="aj-peak">—</span>
+              <span class="d" id="aj-peak-d">—</span></div></div></div>
+
+            <div class="an-card span-6">
+              <div class="hd"><h3>任务类别构成</h3><div class="sp"></div>
+                <span class="tag" id="aj-donut-total">0</span></div>
+              <div class="bd" style="display:grid;place-items:center"><div id="ch-aj-donut"></div></div>
+            </div>
+
+            <div class="an-card span-6">
+              <div class="hd"><h3>各任务检出量</h3><div class="sp"></div>
+                <span class="tag">按总数排序</span></div>
+              <div class="bd"><div id="ch-aj-tasks"></div></div>
+            </div>
+
+            <div class="an-card span-12">
+              <div class="hd"><h3>任务明细</h3><div class="sp"></div>
+                <span class="tag">密度按标定面积换算，未标定则不出</span></div>
+              <div class="bd" style="padding-top:0;overflow:auto"><div id="aj-table"></div></div>
+            </div>
+          </div>
+
+          <!-- ---------- 3.4 定位与轨迹 ---------- -->
+          <div class="an-sec">
+            <h2>定位与轨迹</h2>
+            <p>来源：北斗/GNSS 定位模块与导入的存储卡日志（MCU 写卡）。</p>
+            <div class="sp"></div>
+            <span class="tag" id="an-geo-note">—</span>
+            <button class="btn btn-sm btn-ghost" id="btn-an-geo"><svg><use href="#i-globe"/></svg>前往北斗视图</button>
+          </div>
+          <div class="an-grid">
+            <div class="an-card span-12">
+              <div class="hd"><h3>当前定位质量</h3><div class="sp"></div>
+                <span class="chip" id="an-geo-chip"><span class="dot"></span>—</span></div>
+              <div class="bd" style="padding-top:0"><div id="an-geo-tiles"></div></div>
+            </div>
+
+            <div class="an-card span-5">
+              <div class="hd"><h3>轨迹解析摘要</h3><div class="sp"></div>
+                <span class="tag" id="an-trk-name">—</span></div>
+              <div class="bd" style="padding-top:0"><div id="an-trk-grid"></div>
+                <div id="an-trk-hints"></div></div>
+            </div>
+
+            <div class="an-card span-7">
+              <div class="hd"><h3>轨迹走向（ENU 本地坐标）</h3><div class="sp"></div>
+                <span class="tag" id="an-trk-scatter-tag">—</span></div>
+              <div class="bd" style="display:grid;place-items:center"><div id="an-trk-scatter"></div></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ========== 4. 北斗 ========== -->
+      <section class="view" id="view-geo">
+        <div class="panel">
+          <div class="panel-hd">
+            <h2>北斗定位</h2>
+            <div class="sp"></div>
+            <span class="chip geo" id="geo-real-chip"><span class="dot"></span>演示坐标</span>
+            <button class="ibtn sm" id="btn-geo-copy" title="复制坐标"><svg><use href="#i-copy"/></svg></button>
+          </div>
+          <div class="panel-bd">
+            <div class="tiles c4" style="border-bottom:1px solid var(--line)">
+              <div class="tile"><span class="k">纬度 LAT</span><span class="v geo" id="geo-lat">—</span><span class="d">WGS-84</span></div>
+              <div class="tile"><span class="k">经度 LON</span><span class="v geo" id="geo-lon">—</span><span class="d">WGS-84</span></div>
+              <div class="tile"><span class="k">海拔 ALT</span><span class="v" id="geo-alt">—<small>m</small></span><span class="d">椭球高</span></div>
+              <div class="tile"><span class="k">卫星 已用 / 可见</span><span class="v" id="geo-sats">—</span><span class="d" id="geo-sats-d">颗</span></div>
+            </div>
+
+            <!-- ============ 北斗特色服务三块 ============
+                 定位只是北斗能力的一部分。这三块分别对应：
+                 精度档位（把"有定位"细化为"哪种精度的定位"）、
+                 时间基准（授时，把 UTC 变成可核对的时间参照）、
+                 星座构成（说明北斗在这一帧里出了多少力）。
+                 三者判不出来时一律显示"—"并说明原因，不回退到默认值。 -->
+            <div class="sec" id="geo-bds-sec" style="border-bottom:1px solid var(--line)">
+              <div class="sec-hd">
+                <span class="t">北斗特色服务</span>
+                <div class="sp"></div>
+                <span class="chip" id="geo-tier-chip">档位未知</span>
+              </div>
+              <div class="panel-bd" style="padding-top:0">
+                <div class="bds-grid" id="geo-bds-grid"></div>
+                <p class="fld-hint" id="geo-bds-hint" style="margin:8px 0 0"></p>
+              </div>
+            </div>
+
+            <!-- 定位质量与健康度：让"没定位"和"定位正常"一眼可分 -->
+            <div class="geo-meta" id="geo-meta"></div>
+            <p class="fld-hint" id="geo-msg" style="padding:0 16px 12px;margin:0"></p>
+
+            <!-- ============ 存储卡日志回放（离线路线）============
+                 模块接单片机 → MCU 把 NMEA + 时间写进存储卡 → 事后把日志和视频一起导入。
+                 这一块是这条路线的主入口，不是"串口实时读数"的附属功能。 -->
+            <div class="sec" style="border-bottom:1px solid var(--line)">
+              <div class="sec-hd"><span class="t">存储卡日志回放</span><div class="sp"></div>
+                <span class="chip" id="track-chip">未导入</span>
+                <button class="btn btn-sm btn-ghost" id="btn-track-clear" hidden>
+                  <svg><use href="#i-trash"/></svg>清除
+                </button>
+              </div>
+              <div class="track-bd">
+                <div class="dropzone" id="track-drop" tabindex="0" role="button">
+                  <div class="dz-ic"><svg><use href="#i-upload"/></svg></div>
+                  <div class="dz-t">拖入存储卡里的日志</div>
+                  <div class="dz-s">或点击选择文件 · 导入后立即显示识别结果</div>
+                  <div class="dz-f">TXT · LOG · NMEA · CSV · DAT</div>
+                </div>
+                <input type="file" id="track-file" accept=".txt,.log,.nmea,.csv,.dat" hidden>
+
+                <!-- 导入回执：识别到了什么、哪些没认出来 -->
+                <div id="track-receipt"></div>
+
+                <!-- 时间轴 -->
+                <div id="track-tl" hidden>
+                  <div class="tl-head">
+                    <span class="tl-now mono" id="tl-now">0.0 s</span>
+                    <div class="sp"></div>
+                    <span class="tl-range" id="tl-range">—</span>
+                  </div>
+                  <input type="range" class="rng" id="tl-slider" min="0" max="0" step="0.05" value="0"
+                         aria-label="拖动选择时刻">
+                  <div class="tl-row">
+                    <button class="btn btn-sm" id="btn-tl-play"><svg><use href="#i-play"/></svg>播放</button>
+                    <button class="btn btn-sm btn-ghost" id="btn-tl-start">回到起点</button>
+                    <button class="btn btn-sm btn-ghost" id="btn-tl-end">跳到末尾</button>
+                    <div class="sp"></div>
+                    <span class="tag" id="tl-aligned">未对齐</span>
+                  </div>
+                </div>
+
+                <!-- 当前时刻的定位帧 -->
+                <div id="track-fix"></div>
+
+                <!-- 对齐 -->
+                <div id="track-align" hidden>
+                  <div class="al-row">
+                    <label class="al-lb" for="al-utc">视频第 0 秒的 UTC</label>
+                    <input class="input mono" id="al-utc" placeholder="2026-09-17T12:00:00Z" spellcheck="false">
+                    <button class="btn btn-sm" id="btn-al-utc">对齐</button>
+                  </div>
+                  <div class="al-row">
+                    <label class="al-lb" for="al-delta">整体平移（秒）</label>
+                    <input class="input mono" id="al-delta" type="number" step="0.1" value="0">
+                    <button class="btn btn-sm" id="btn-al-delta">应用</button>
+                  </div>
+                  <p class="fld-hint" style="padding:0 0 4px">
+                    绝对时间日志（ISO / Unix）填上面那行即可自动对齐；
+                    相对时间（上电计时 / 当天时刻）用下面那行，找一个已知同步点微调。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="sec" style="border-bottom:1px solid var(--line)">
+              <div class="sec-hd"><span class="t">卫星星空图</span><div class="sp"></div>
+                <span class="tag" id="sky-tag">方位角 / 高度角</span></div>
+              <div class="skywrap" id="skyplot"></div>
+            </div>
+
+            <div class="sec">
+              <div class="sec-hd"><span class="t">目标地理散布（ENU 本地坐标）</span><div class="sp"></div>
+                <span class="tag" id="scatter-tag">东 / 北 · 米</span></div>
+              <div class="scatter-wrap" id="scatter"></div>
+              <p class="fld-hint" style="padding:0 16px 16px">
+                以图像中心对应北斗坐标为原点，按像素偏移换算为本地东-北坐标。
+                换算只用后端下发的同一地面采样距离（GSD）；未标定 GSD 时不给坐标，只显示「—」。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel col-r">
+          <div class="panel-hd">
+            <h2>目标定位</h2>
+            <div class="sp"></div>
+            <span class="count-chip" id="geo-count">0</span>
+          </div>
+          <div class="panel-bd" id="geo-table"></div>
+        </div>
+      </section>
+
+      <!-- ========== 5. 设置 ========== -->
+      <section class="view" id="view-settings">
+        <div class="set-wrap">
+
+          <div class="set-card">
+            <div class="hd"><h3>外观</h3><p>主题、类别配色与界面密度。</p></div>
+            <div class="bd">
+              <div class="set-row">
+                <div><div class="lbl">主题</div><div class="sub">深色适合长时间值守与暗光环境；浅色适合投影与打印。</div></div>
+                <div class="ctl">
+                  <div class="theme-opts">
+                    <div class="theme-opt" data-theme-opt="dark" role="button" aria-pressed="true">
+                      <div class="pv"><div class="side"></div><div class="body"></div></div>
+                      <div class="nm">深色</div>
+                    </div>
+                    <div class="theme-opt" data-theme-opt="light" role="button" aria-pressed="false" data-t="light">
+                      <div class="pv"><div class="side"></div><div class="body"></div></div>
+                      <div class="nm">浅色</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="set-row stack">
+                <div><div class="lbl">类别配色</div><div class="sub">10 类目标的绘制颜色。与后端 <code>ClassInfo.color</code> 解耦，仅影响前端呈现。</div></div>
+                <div class="ctl wide pal-opts" style="justify-self:start;width:auto">
+                  <div class="pal-opt" data-pal="soft" role="button" aria-pressed="true">
+                    <div class="sw-row">
+                      <i style="background:#4ade80"></i><i style="background:#f87171"></i><i style="background:#38bdf8"></i>
+                      <i style="background:#fbbf24"></i><i style="background:#a78bfa"></i><i style="background:#fb923c"></i>
+                    </div><div class="nm">柔和</div>
+                  </div>
+                  <div class="pal-opt" data-pal="vivid" role="button" aria-pressed="false">
+                    <div class="sw-row">
+                      <i style="background:#22c55e"></i><i style="background:#ef4444"></i><i style="background:#06b6d4"></i>
+                      <i style="background:#eab308"></i><i style="background:#8b5cf6"></i><i style="background:#f97316"></i>
+                    </div><div class="nm">鲜明</div>
+                  </div>
+                  <div class="pal-opt" data-pal="mono" role="button" aria-pressed="false">
+                    <div class="sw-row">
+                      <i style="background:#8ab4f8"></i><i style="background:#a5c9ff"></i><i style="background:#c0d8ff"></i>
+                      <i style="background:#dbe7ff"></i><i style="background:#7ea6f0"></i><i style="background:#9ec1ff"></i>
+                    </div><div class="nm">单色</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="set-row">
+                <div><div class="lbl">界面密度</div><div class="sub">紧凑模式在相同屏幕内展示更多数据行。</div></div>
+                <div class="ctl">
+                  <div class="seg sm" id="set-density" style="width:180px">
+                    <button class="seg-btn" data-v="comfortable" aria-selected="true">舒适</button>
+                    <button class="seg-btn" data-v="compact" aria-selected="false">紧凑</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="set-row">
+                <div><div class="lbl">界面动效</div><div class="sub">关闭后禁用过渡与入场动画（也遵循系统「减弱动效」设置）。</div></div>
+                <div class="ctl"><button class="switch" id="set-motion" role="switch" aria-checked="true" aria-label="界面动效"></button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="set-card">
+            <div class="hd"><h3>后端连接</h3><p>前端会自动探测以下接口形态，任一可用即切换为真实推理。</p></div>
+            <div class="bd">
+              <div class="set-row">
+                <div><div class="lbl">API 基址</div><div class="sub">留空表示与页面同源。跨域时需后端开启 CORS。</div></div>
+                <div class="ctl wide"><input class="input mono" id="set-api" placeholder="同源（留空）"></div>
+              </div>
+              <div class="set-row">
+                <div><div class="lbl">自动探测</div><div class="sub">依次尝试 <code>/api/v1</code>（FastAPI）与 <code>/api</code>（旧版 Flask）。</div></div>
+                <div class="ctl"><button class="switch" id="set-autoprobe" role="switch" aria-checked="true" aria-label="自动探测"></button></div>
+              </div>
+              <div class="set-row">
+                <div><div class="lbl">请求超时</div><div class="sub">单次推理请求的最长等待时间。</div></div>
+                <div class="ctl wide">
+                  <div class="input-group"><input class="input mono" id="set-timeout" type="number" min="5" max="600" value="120"><span class="suffix">秒</span></div>
+                </div>
+              </div>
+              <div class="set-row">
+                <div><div class="lbl">连接测试</div><div class="sub" id="conn-result">尚未测试。</div></div>
+                <div class="ctl"><button class="btn btn-sm" id="btn-test-conn"><svg><use href="#i-plug"/></svg>测试连接</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="set-card">
+            <div class="hd"><h3>推理默认值</h3><p>新建会话时应用的初始参数。</p></div>
+            <div class="bd">
+              <div class="set-row">
+                <div><div class="lbl">默认置信度阈值</div></div>
+                <div class="ctl wide" style="display:flex;gap:10px">
+                  <input type="range" class="rng" id="set-conf" min="0.01" max="0.99" step="0.01" value="0.25">
+                  <span class="fld-val" id="set-conf-v" style="width:34px;text-align:right">0.25</span>
+                </div>
+              </div>
+              <div class="set-row">
+                <div><div class="lbl">默认 IoU 阈值</div></div>
+                <div class="ctl wide" style="display:flex;gap:10px">
+                  <input type="range" class="rng" id="set-iou" min="0.05" max="0.95" step="0.05" value="0.45">
+                  <span class="fld-val" id="set-iou-v" style="width:34px;text-align:right">0.45</span>
+                </div>
+              </div>
+              <div class="set-row">
+                <div><div class="lbl">默认输入尺寸</div></div>
+                <div class="ctl">
+                  <select class="select" id="set-imgsz" style="width:120px">
+                    <option>640</option><option>768</option><option>1024</option><option>1280</option>
+                  </select>
+                </div>
+              </div>
+              <div class="set-row">
+                <div><div class="lbl">切片推理默认开启</div><div class="sub">对高分辨率航拍图提升小目标召回，代价是推理耗时上升。</div></div>
+                <div class="ctl"><button class="switch" id="set-slice" role="switch" aria-checked="false" aria-label="切片推理默认开启"></button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="set-card">
+            <div class="hd"><h3>数据与导出</h3></div>
+            <div class="bd">
+              <div class="set-row">
+                <div><div class="lbl">保留会话统计</div><div class="sub">把每次推理的耗时、类别计数留在「分析」视图中，仅存于本机浏览器。</div></div>
+                <div class="ctl"><button class="switch" id="set-persist" role="switch" aria-checked="true" aria-label="保留会话统计"></button></div>
+              </div>
+              <div class="set-row">
+                <div><div class="lbl">会话数据</div><div class="sub" id="data-stat">—</div></div>
+                <div class="ctl" style="gap:8px">
+                  <button class="btn btn-sm" id="btn-export-session"><svg><use href="#i-download"/></svg>导出 JSON</button>
+                  <button class="btn btn-sm btn-danger" id="btn-clear-data"><svg><use href="#i-trash"/></svg>清空</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="set-card">
+            <div class="hd">
+              <h3>训练成果</h3>
+              <p>已移到「分析」视图 —— 设置页只放偏好项，训练指标属于分析结果。</p>
+            </div>
+            <div class="bd">
+              <button class="btn btn-sm" id="btn-goto-train"><svg><use href="#i-chart"/></svg>前往分析 · 模型与训练</button>
+            </div>
+          </div>
+
+          <div class="set-card">
+            <div class="hd"><h3>关于</h3></div>
+            <div class="bd">
+              <div class="kv" style="font-size:12px">
+                <dt>系统</dt><dd>北斗 · 改进 YOLOv8m 小目标识别辅助系统</dd>
+                <dt>前端版本</dt><dd>1.0.0</dd>
+                <dt>检测类别</dt><dd>VisDrone-2019 · 10 类</dd>
+                <dt>模型改进</dt><dd>EMA · DySample · Slim-Neck · NWD · P2</dd>
+                <dt>设计参考</dt><dd>shadcn/ui · Geist · Linear · Tremor</dd>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:4px">
+                <button class="btn btn-sm" id="btn-keys3"><svg><use href="#i-keyboard"/></svg>快捷键</button>
+                <button class="btn btn-sm" id="btn-api-doc"><svg><use href="#i-terminal"/></svg>接口文档</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ---------- 状态栏 ---------- -->
+    <footer class="statusbar">
+      <span class="st-item" id="st-conn"><svg style="width:12px;height:12px"><use href="#i-plug-off"/></svg><span>未连接后端 · 演示模式</span></span>
+      <span class="st-item" id="st-device" hidden><svg style="width:12px;height:12px"><use href="#i-cpu"/></svg><span class="mono">—</span></span>
+      <span class="st-item" id="st-ms" hidden><svg style="width:12px;height:12px"><use href="#i-clock"/></svg><span class="mono">—</span></span>
+      <span class="st-item" id="st-reqid" hidden><svg style="width:12px;height:12px"><use href="#i-terminal"/></svg><span class="mono">—</span></span>
+      <div class="st-gap"></div>
+      <span class="st-item st-hint tb-hide-sm">
+        <kbd>Ctrl</kbd><kbd>K</kbd><span>命令</span>
+        <kbd>F</kbd><span>适应</span>
+        <kbd>R</kbd><span>推理</span>
+        <kbd>?</kbd><span>帮助</span>
+      </span>
+    </footer>
+  </div>
+</div>
+
+<!-- ======================= 命令面板 ======================= -->
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="命令面板">
+  <div class="pal-box">
+    <div class="pal-input">
+      <svg><use href="#i-search"/></svg>
+      <input id="pal-input" placeholder="输入命令、视图或操作…" autocomplete="off" spellcheck="false">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="pal-list" id="pal-list"></div>
+    <div class="pal-foot">
+      <span class="it"><kbd>↑</kbd><kbd>↓</kbd>选择</span>
+      <span class="it"><kbd>↵</kbd>执行</span>
+      <span class="it"><kbd>Esc</kbd>关闭</span>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= 快捷键弹窗 ======================= -->
+<div class="modal" id="modal-keys" role="dialog" aria-modal="true" aria-label="快捷键">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <svg style="width:17px;height:17px;color:var(--fg-3)"><use href="#i-keyboard"/></svg>
+      <h3>快捷键</h3>
+      <button class="ibtn sm" data-close="modal-keys"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-bd">
+      <table class="kbd-tbl">
+        <tr class="grp"><td colspan="2">全局</td></tr>
+        <tr><td>打开命令面板</td><td><kbd>Ctrl</kbd> <kbd>K</kbd></td></tr>
+        <tr><td>快捷键帮助</td><td><kbd>?</kbd></td></tr>
+        <tr><td>切换主题</td><td><kbd>D</kbd></td></tr>
+        <tr><td>切换视图</td><td><kbd>Alt</kbd> <kbd>1</kbd>…<kbd>5</kbd></td></tr>
+        <tr><td>关闭浮层 / 取消选中</td><td><kbd>Esc</kbd></td></tr>
+        <tr class="grp"><td colspan="2">检测台</td></tr>
+        <tr><td>开始 / 重新推理</td><td><kbd>R</kbd></td></tr>
+        <tr><td>切换输入源</td><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td></tr>
+        <tr><td>适应窗口 / 实际像素</td><td><kbd>F</kbd> / <kbd>Shift</kbd><kbd>1</kbd></td></tr>
+        <tr><td>放大 / 缩小</td><td><kbd>+</kbd> / <kbd>-</kbd></td></tr>
+        <tr><td>显示框 / 标签 / 序号</td><td><kbd>B</kbd> / <kbd>L</kbd> / <kbd>N</kbd></td></tr>
+        <tr><td>置信度条 / 遮罩 / 栅格</td><td><kbd>C</kbd> / <kbd>M</kbd> / <kbd>G</kbd></td></tr>
+        <tr><td>原图对比</td><td><kbd>V</kbd></td></tr>
+        <tr><td>列表上下移动选中</td><td><kbd>↑</kbd> <kbd>↓</kbd></td></tr>
+        <tr class="grp"><td colspan="2">上传</td></tr>
+        <tr><td>打开文件选择</td><td><kbd>O</kbd></td></tr>
+        <tr><td>载入演示场景</td><td><kbd>Shift</kbd> <kbd>D</kbd></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= 关于弹窗 ======================= -->
+<div class="modal" id="modal-about" role="dialog" aria-modal="true" aria-label="关于">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <svg style="width:17px;height:17px;color:var(--accent)"><use href="#i-satellite"/></svg>
+      <h3>关于本系统</h3>
+      <button class="ibtn sm" data-close="modal-about"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-bd" style="display:flex;flex-direction:column;gap:16px">
+      <p style="font-size:12.5px;line-height:1.8;color:var(--fg-2)">
+        面向低空航拍场景的小目标检测辅助系统：在 YOLOv8m 基线上引入
+        <b>EMA 注意力</b>、<b>DySample 动态上采样</b>、<b>Slim-Neck（GSConv / VoVGSCSP）</b>、
+        <b>NWD 损失</b> 与 <b>P2 小目标检测分支</b>，在 VisDrone-2019 上做 10 类检测，
+        并叠加北斗定位给出目标的地理坐标估算。
+      </p>
+      <div class="kv" style="font-size:12px">
+        <dt>数据集</dt><dd>VisDrone-2019 DET</dd>
+        <dt>类别数</dt><dd>10</dd>
+        <dt>推理引擎</dt><dd>Ultralytics YOLO · PyTorch / CUDA</dd>
+        <dt>可选加速</dt><dd>SAHI 切片推理 · TensorRT</dd>
+      </div>
+      <div>
+        <div class="sec-hd" style="padding-left:0"><span class="t">前端设计参考</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <span class="chip">shadcn/ui</span><span class="chip">Vercel Geist</span>
+          <span class="chip">Linear</span><span class="chip">Radix UI</span>
+          <span class="chip">Tremor</span><span class="chip">Grafana</span>
+          <span class="chip">supervision</span><span class="chip">Tailwind CSS</span>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--fg-4);line-height:1.7">
+        零运行时依赖：无 CDN、无构建步骤，可离线运行。图表、星图与画布标注均为手写
+        SVG / Canvas 实现。
+      </p>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-sm" data-close="modal-about">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= 配图放大 ======================= -->
+<div class="modal" id="modal-lightbox" role="dialog" aria-modal="true" aria-label="训练配图放大">
+  <div class="modal-box" style="width:min(1000px,100%)">
+    <div class="modal-hd">
+      <svg style="width:17px;height:17px;color:var(--accent)"><use href="#i-image"/></svg>
+      <h3 id="lb-title">训练配图</h3>
+      <a class="ibtn sm" id="lb-open" target="_blank" rel="noopener" title="新标签页打开原图"><svg><use href="#i-zoom-in"/></svg></a>
+      <button class="ibtn sm" data-close="modal-lightbox"><svg><use href="#i-x"/></svg></button>
+    </div>
+    <div class="modal-bd lightbox">
+      <img id="lb-img" alt="训练配图">
+      <div class="cap" id="lb-cap">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<input type="file" id="file-input" accept="image/*" multiple hidden><input type="file" id="file-video" accept="video/*" hidden>
+
+<script src="assets/js/core.js"></script>
+<script src="assets/js/visual.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
